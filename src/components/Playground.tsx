@@ -1,0 +1,389 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Send, Sparkles, User, Shield, Info, Loader2, AlertTriangle, Zap, Split, Brain } from 'lucide-react';
+import { OceanScores, Message, ComparisonMessage } from '../types';
+import { generateAlignmentPrompt, generateInverseAlignmentPrompt } from '../constants';
+import { chatWithGeminiStream } from '../services/gemini';
+
+interface PlaygroundProps {
+  scores: OceanScores;
+  messages: ComparisonMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<ComparisonMessage[]>>;
+  setScores: React.Dispatch<React.SetStateAction<OceanScores | null>>;
+}
+
+export default function Playground({ scores, messages, setMessages, setScores }: PlaygroundProps) {
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeAnalysis, setActiveAnalysis] = useState<{ text: string, explanation: string, type: string } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const alignedSystemPrompt = generateAlignmentPrompt(scores);
+  const unalignedSystemPrompt = generateInverseAlignmentPrompt(scores);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const newMessage: ComparisonMessage = {
+      user: input,
+      aligned: '',
+      unaligned: '',
+      loading: true
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    const currentMessageIndex = messages.length;
+    setInput('');
+    setIsLoading(true);
+
+    let alignedText = '';
+    let unalignedText = '';
+
+    const conversationHistory: Message[] = messages.flatMap(m => [
+      { role: 'user', content: m.user },
+      { role: 'model', content: m.aligned }
+    ]);
+    const currentInput: Message = { role: 'user', content: input };
+
+    const alignedPromise = (async () => {
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedSystemPrompt, "gemini-3.1-pro-preview");
+      for await (const chunk of stream) {
+        alignedText += chunk;
+        updateMessage(currentMessageIndex, { aligned: alignedText });
+      }
+    })();
+
+    const unalignedPromise = (async () => {
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedSystemPrompt, "gemini-3.1-pro-preview");
+      for await (const chunk of stream) {
+        unalignedText += chunk;
+        updateMessage(currentMessageIndex, { unaligned: unalignedText });
+      }
+    })();
+
+    await Promise.all([alignedPromise, unalignedPromise]);
+    updateMessage(currentMessageIndex, { loading: false });
+    setIsLoading(false);
+  };
+
+  const updateMessage = (index: number, patch: Partial<ComparisonMessage>) => {
+    setMessages(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...patch };
+      return updated;
+    });
+  };
+
+  const handlePresetSubmit = async (presetScores: OceanScores, presetPrompt: string) => {
+    if (isLoading) return;
+
+    if (setScores) {
+      setScores(presetScores);
+    }
+
+    setInput('');
+    
+    const newMessage: ComparisonMessage = {
+      user: presetPrompt,
+      aligned: '',
+      unaligned: '',
+      loading: true
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    const currentMessageIndex = messages.length;
+    setIsLoading(true);
+
+    let alignedText = '';
+    let unalignedText = '';
+
+    const alignedPresetSystemPrompt = generateAlignmentPrompt(presetScores);
+    const unalignedPresetSystemPrompt = generateInverseAlignmentPrompt(presetScores);
+
+    const conversationHistory: Message[] = messages.flatMap(m => [
+      { role: 'user', content: m.user },
+      { role: 'model', content: m.aligned }
+    ]);
+    const currentInput: Message = { role: 'user', content: presetPrompt };
+
+    const alignedPromise = (async () => {
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedPresetSystemPrompt, "gemini-3.1-pro-preview");
+      for await (const chunk of stream) {
+        alignedText += chunk;
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[currentMessageIndex] = { ...updated[currentMessageIndex], aligned: alignedText };
+          return updated;
+        });
+      }
+    })();
+
+    const unalignedPromise = (async () => {
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedPresetSystemPrompt, "gemini-3.1-pro-preview");
+      for await (const chunk of stream) {
+        unalignedText += chunk;
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[currentMessageIndex] = { ...updated[currentMessageIndex], unaligned: unalignedText };
+          return updated;
+        });
+      }
+    })();
+
+    await Promise.all([alignedPromise, unalignedPromise]);
+    setMessages(prev => {
+      const updated = [...prev];
+      updated[currentMessageIndex] = { ...updated[currentMessageIndex], loading: false };
+      return updated;
+    });
+    setIsLoading(false);
+  };
+
+  const renderContent = (text: string, type: 'aligned' | 'unaligned') => {
+    // Regex for <mark-bridge explanation="...">text</mark-bridge>
+    const parts = text.split(/(<mark-bridge explanation="[^"]*">.*?<\/mark-bridge>)/g);
+    
+    return parts.map((part, i) => {
+      const match = part.match(/<mark-bridge explanation="([^"]*)">(.*?)<\/mark-bridge>/);
+      if (match) {
+        const explanation = match[1];
+        const content = match[2];
+        const isActive = activeAnalysis?.text === content && activeAnalysis?.explanation === explanation;
+
+        return (
+          <button
+            key={i}
+            onClick={() => setActiveAnalysis({ text: content, explanation, type })}
+            className={`cursor-help transition-all duration-300 font-medium ${
+              type === 'aligned' 
+                ? `${isActive ? 'bg-green-500/30 text-white underline decoration-green-400' : 'bg-green-500/10 text-green-300 decoration-green-500/30 underline decoration-dotted'}` 
+                : `${isActive ? 'bg-red-500/30 text-white underline decoration-red-400' : 'bg-red-500/10 text-red-300 decoration-red-500/30 underline decoration-dotted'}`
+            }`}
+          >
+            {content}
+          </button>
+        );
+      }
+      return part;
+    });
+  };
+
+  return (
+    <div className="flex h-full gap-6 relative">
+      {/* Mobile Analysis Modal */}
+      <AnimatePresence>
+        {activeAnalysis && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setActiveAnalysis(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className={`p-6 rounded-2xl border max-w-sm w-full shadow-2xl ${
+                activeAnalysis.type === 'aligned' ? 'bg-[#1a2e1a] border-green-500/50' : 'bg-[#2e1a1a] border-red-500/50'
+              }`}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`p-1.5 rounded-lg ${activeAnalysis.type === 'aligned' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                   {activeAnalysis.type === 'aligned' ? <Shield className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                </div>
+                <h4 className="font-bold text-sm uppercase tracking-widest">{activeAnalysis.type.toUpperCase()} ANALYSIS</h4>
+              </div>
+              <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">Original Context:</p>
+              <blockquote className="border-l-2 border-white/10 pl-3 italic text-xs mb-4 text-gray-300">"{activeAnalysis.text}"</blockquote>
+              <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">Bridge Logic:</p>
+              <p className="text-sm leading-relaxed text-white">
+                {activeAnalysis.explanation}
+              </p>
+              <button 
+                onClick={() => setActiveAnalysis(null)}
+                className="mt-6 w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase transition-colors"
+              >
+                Dismiss Analysis
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex-1 flex flex-col bg-[#1a1a1a] border border-[#333] rounded-xl overflow-hidden shadow-2xl relative min-w-0">
+        <div className="grid grid-cols-2 bg-[#252525] border-b border-[#333]">
+          <div className="p-4 flex items-center justify-between border-r border-[#333]">
+            <div className="flex items-center gap-3">
+              <Shield className="w-4 h-4 text-green-400" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-green-400">Aligned Bridge</span>
+            </div>
+            <Zap className="w-3 h-3 text-white animate-pulse hidden sm:block" />
+          </div>
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-red-500">Reinforced Bias</span>
+            </div>
+            <Split className="w-3 h-3 text-red-800 hidden sm:block" />
+          </div>
+        </div>
+
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-0 flex flex-col divide-y divide-[#333] custom-scrollbar"
+        >
+          {messages.length === 0 && (
+            <div className="p-20 flex flex-col items-center justify-center text-center opacity-30">
+              <Sparkles className="w-12 h-12 mb-4 text-orange-500" />
+              <h4 className="text-lg font-medium">Initialize Comparative Analysis</h4>
+              <p className="text-sm max-w-sm mt-2 font-mono">Parallel streaming enabled. Witness the divergence between Aligned and Unaligned logic.</p>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <div key={i} className="flex flex-col">
+              <div className="bg-[#1f1f1f] p-4 flex justify-center border-b border-[#333]">
+                 <div className="flex items-center gap-3 bg-blue-600/10 px-4 py-2 rounded-full border border-blue-500/20 max-w-[90%] overflow-hidden">
+                    <User className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="text-xs font-medium text-blue-200 italic truncate">{m.user}</span>
+                 </div>
+              </div>
+              
+              <div className="grid grid-cols-2 divide-x divide-[#333] min-h-[100px]">
+                <div className="p-4 sm:p-6 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap bg-green-500/5">
+                   {m.aligned ? renderContent(m.aligned, 'aligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-[#333] animate-pulse rounded" /><div className="h-3 w-1/2 bg-[#333] animate-pulse rounded" /></div>)}
+                </div>
+                <div className="p-4 sm:p-6 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap border-l border-red-500/10 bg-red-500/5">
+                   {m.unaligned ? renderContent(m.unaligned, 'unaligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-[#333] animate-pulse rounded" /><div className="h-3 w-1/2 bg-[#333] animate-pulse rounded" /></div>)}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="p-4 flex justify-center gap-2 bg-[#1a1a1a] border-t border-[#333]">
+               <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+               <span className="text-[10px] uppercase font-bold tracking-widest text-gray-600">Generating Cognitive Delta...</span>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 bg-[#252525] border-t border-[#333]">
+          <div className="relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask a question to see the alignment gap..."
+              className="w-full bg-[#1a1a1a] border border-[#444] rounded-xl py-4 px-6 pr-14 text-sm focus:outline-none focus:border-blue-500 transition-all resize-none h-[64px]"
+            />
+            <button 
+              onClick={handleSend}
+              disabled={isLoading || !input.trim()}
+              className="absolute right-3 bottom-3 p-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-all rounded-lg shadow-lg shadow-orange-600/20"
+            >
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:flex w-[320px] shrink-0 flex-col gap-6">
+        <div className="flex-1 p-6 bg-[#1f1f1f] border border-[#333] rounded-xl flex flex-col gap-4 overflow-hidden shadow-xl">
+           <div className="flex items-center gap-3">
+              <Brain className="w-5 h-5 text-orange-500" />
+              <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-white">Logic Analysis</h4>
+           </div>
+           
+           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+              <AnimatePresence mode="wait">
+                {activeAnalysis ? (
+                  <motion.div 
+                    key="analysis"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest ${
+                        activeAnalysis.type === 'aligned' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {activeAnalysis.type} Mode Active
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Proof Point:</p>
+                      <blockquote className="p-4 bg-white/5 border-l-2 border-orange-500 rounded-r-lg italic text-sm text-gray-300">
+                        "{activeAnalysis.text}"
+                      </blockquote>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Alignment Explanation:</p>
+                      <p className="text-sm leading-relaxed text-gray-400">
+                        {activeAnalysis.explanation}
+                      </p>
+                    </div>
+
+                    <button 
+                      onClick={() => setActiveAnalysis(null)}
+                      className="text-[10px] uppercase font-bold text-gray-600 hover:text-white transition-colors"
+                    >
+                      Clear Selection
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="h-full flex flex-col items-center justify-center text-center p-4"
+                  >
+                    <Info className="w-10 h-10 text-gray-700 mb-4" />
+                    <p className="text-xs text-gray-500 italic">Select a highlighted section in the bridge chat to view its psychometric derivation and alignment logic.</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+           </div>
+        </div>
+
+        <div className="p-5 bg-blue-900/10 border border-blue-500/20 rounded-xl">
+           <h4 className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-3">Steering Mode</h4>
+           <div className="space-y-4">
+              <div className="flex items-start gap-2">
+                <Shield className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-gray-400 leading-relaxed italic">
+                  Aligned: Dampens psychological extremes to prevent "Yes-Manning" and confirmation loops.
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-gray-300 leading-relaxed italic">
+                  Inverse: Amplifies user tendencies to show the "Raw Personality" output without bridge correction.
+                </p>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
