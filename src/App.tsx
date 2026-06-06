@@ -48,47 +48,36 @@ export default function App() {
               key={step.id}
               onClick={() => !step.disabled && setActiveModule(step.id as ModuleId)}
               disabled={step.disabled}
-              className={`text-xs uppercase tracking-[0.2em] font-bold transition-all px-4 py-2 rounded-full ${
-                step.active 
-                  ? 'text-white bg-[#333] border border-[#444]' 
-                  : step.disabled ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'
-              }`}
+              className={`text-xs uppercase tracking-[0.2em] font-bold transition-all px-4 py-2 rounded-full ${step.active
+                ? 'text-white bg-[#333] border border-[#444]'
+                : step.disabled ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'
+                }`}
             >
               {step.label}
             </button>
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-end mr-4 border-r border-[#333] pr-4 py-1">
-            <span className="text-[10px] text-gray-500 uppercase font-mono">Gateway Protocol</span>
-            <span className="text-xs font-bold text-gray-300">Clawdia_Gateway // OpenClaw</span>
-          </div>
-          <a href="#" className="p-2 hover:bg-gray-800 rounded-full transition-colors">
-            <Github className="w-5 h-5 text-gray-400" />
-          </a>
-        </div>
       </nav>
 
       {/* Hero / Information Bar (Only on Mirror) */}
       {activeModule === 'mirror' && (
         <div className="bg-[#1e1e1e] border-b border-[#333] py-3 px-6 overflow-hidden">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-             <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-orange-500" />
-                  <span className="text-[10px] uppercase font-bold text-gray-500">Recursive Reasoning</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Target className="w-3 h-3 text-blue-500" />
-                  <span className="text-[10px] uppercase font-bold text-gray-500">Bias Suppression</span>
-                </div>
-                <div className="flex items-center gap-2 text-green-500">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span className="text-[10px] uppercase font-bold">Stable R&D Build</span>
-                </div>
-             </div>
-             <p className="text-[10px] text-gray-400 font-mono italic">IDE: Antigravity | Engine: Hermes v0.7</p>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Zap className="w-3 h-3 text-orange-500" />
+                <span className="text-[10px] uppercase font-bold text-gray-500">Recursive Reasoning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Target className="w-3 h-3 text-blue-500" />
+                <span className="text-[10px] uppercase font-bold text-gray-500">Bias Suppression</span>
+              </div>
+              <div className="flex items-center gap-2 text-green-500">
+                <ShieldCheck className="w-3 h-3" />
+                <span className="text-[10px] uppercase font-bold">Stable R&D Build</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -109,10 +98,10 @@ export default function App() {
                 <p className="text-gray-400 text-lg leading-relaxed max-w-2xl">Step into the Mirror. Through scenario-based stress tests, we will map your OCEAN personality traits to calibrate your personal AI shard.</p>
               </div>
               <div className="flex-1 min-h-[500px]">
-                <Mirror 
-                  messages={mirrorMessages} 
-                  setMessages={setMirrorMessages} 
-                  onComplete={handleMirrorComplete} 
+                <Mirror
+                  messages={mirrorMessages}
+                  setMessages={setMirrorMessages}
+                  onComplete={handleMirrorComplete}
                 />
               </div>
             </motion.div>
@@ -145,13 +134,13 @@ export default function App() {
               className="flex-1 flex flex-col"
             >
               <div className="mb-6">
-                 <h2 className="text-3xl font-bold tracking-tight">Interfacing with Aligned Intelligence</h2>
-                 <p className="text-gray-400 mt-1">Directives mapped. Prompt fatigue eliminated. Communicate with your matched model.</p>
+                <h2 className="text-3xl font-bold tracking-tight">Interfacing with Aligned Intelligence</h2>
+                <p className="text-gray-400 mt-1">Directives mapped. Prompt fatigue eliminated. Communicate with your matched model.</p>
               </div>
               <div className="flex-1 min-h-0">
-                <Playground 
-                  scores={scores} 
-                  messages={playgroundMessages} 
+                <Playground
+                  scores={scores}
+                  messages={playgroundMessages}
                   setMessages={setPlaygroundMessages}
                   setScores={setScores}
                 />
