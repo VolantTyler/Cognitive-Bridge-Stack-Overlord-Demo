@@ -177,11 +177,9 @@ export default function Playground({ scores, messages, setMessages, setScores, o
           <button
             key={i}
             onClick={() => setActiveAnalysis({ text: content, explanation, type })}
-            className={`cursor-help transition-all duration-300 font-medium ${
-              type === 'aligned' 
-                ? `${isActive ? 'bg-green-500/30 text-white underline decoration-green-400' : 'bg-green-500/10 text-green-300 decoration-green-500/30 underline decoration-dotted'}` 
-                : `${isActive ? 'bg-red-500/30 text-white underline decoration-red-400' : 'bg-red-500/10 text-red-300 decoration-red-500/30 underline decoration-dotted'}`
-            }`}
+            className={`cursor-help transition-all duration-300 font-medium mark-bridge-highlight ${
+              type === 'aligned' ? 'mark-aligned' : 'mark-unaligned'
+            } ${isActive ? 'active' : ''}`}
           >
             {content}
           </button>
