@@ -52,7 +52,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
               key={trait}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-xl border border-[#333] ${config.bg} flex flex-col gap-3 relative overflow-hidden group`}
+              className={`p-4 rounded-xl border border-border-primary ${config.bg} flex flex-col gap-3 relative overflow-hidden group transition-colors duration-300`}
             >
               {/* Shaded background based on score */}
               <div 
@@ -62,13 +62,13 @@ export default function Tailor({ scores, onNext }: TailorProps) {
               
               <div className="flex items-center gap-2 relative z-10">
                 <Icon className={`w-4 h-4 ${config.color}`} />
-                <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-gray-400 group-hover:text-gray-200 transition-colors">{config.label}</span>
+                <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-text-muted group-hover:text-text-secondary transition-colors">{config.label}</span>
               </div>
               <div className="flex items-end gap-1 relative z-10">
                 <span className="text-3xl font-mono font-bold tracking-tighter">{value}</span>
-                <span className="text-[10px] text-gray-500 mb-1.5">/100</span>
+                <span className="text-[10px] text-text-muted-dark mb-1.5">/100</span>
               </div>
-              <div className="h-2 bg-black/40 rounded-full overflow-hidden relative z-10 border border-white/5">
+              <div className="h-2 bg-black/40 rounded-full overflow-hidden relative z-10 border border-border-primary/10">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${value}%` }}
@@ -92,7 +92,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[10px] uppercase font-bold tracking-widest ${
                 copied 
                   ? 'bg-green-500/20 border-green-500/50 text-green-400' 
-                  : 'bg-[#333] border-[#444] text-gray-400 hover:text-white hover:border-gray-500'
+                  : 'bg-bg-surface border border-border-secondary text-text-muted hover:text-text-primary hover:border-text-muted'
               }`}
             >
               {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -107,7 +107,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
                   <FileCode className="w-4 h-4 text-orange-400" />
                   <span className="text-xs font-bold text-orange-400">ALIGNMENT.md Generator</span>
                </div>
-               <p className="text-[11px] text-gray-400 leading-relaxed italic">
+               <p className="text-[11px] text-text-muted leading-relaxed italic">
                  Click the export button above to copy a portable markdown snippet. You can paste this into ChatGPT, Claude, or any other AI to align that session with your Cognitive Bridge profile.
                </p>
             </div>
@@ -119,7 +119,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="p-4 bg-[#252525] border border-[#333] rounded-lg group hover:border-orange-500/50 transition-colors"
+                  className="p-4 bg-bg-surface border border-border-primary rounded-lg group hover:border-orange-500/50 transition-colors duration-300"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold ${
@@ -128,11 +128,11 @@ export default function Tailor({ scores, onNext }: TailorProps) {
                       {d.threshold === 'high' ? 'High' : 'Low'} {TRAIT_CONFIG[d.trait].label}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-300 leading-relaxed italic">"{d.text}"</p>
+                  <p className="text-sm text-text-secondary leading-relaxed italic">"{d.text}"</p>
                 </motion.div>
               ))
             ) : (
-              <div className="p-8 border border-dashed border-[#444] rounded-xl flex flex-col items-center justify-center text-center gap-3 opacity-50">
+              <div className="p-8 border border-dashed border-border-secondary rounded-xl flex flex-col items-center justify-center text-center gap-3 opacity-50">
                 <ShieldAlert className="w-8 h-8" />
                 <p className="text-sm">No critical trait spikes detected. <br/>Default professional alignment active.</p>
               </div>
@@ -140,10 +140,10 @@ export default function Tailor({ scores, onNext }: TailorProps) {
           </div>
         </div>
 
-        <div className="bg-[#252525] border border-[#333] rounded-xl p-6 flex flex-col gap-6">
+        <div className="bg-bg-surface border border-border-primary rounded-xl p-6 flex flex-col gap-6 transition-colors duration-300">
           <div className="flex flex-col gap-2">
             <h3 className="text-xl font-bold tracking-tight">The "Tailor" Synthesis</h3>
-            <p className="text-sm text-gray-400">Your profile has been mapped to specific steering directives in the agent's logic. This ensures the model compensates for your biases and enhances your strengths.</p>
+            <p className="text-sm text-text-muted">Your profile has been mapped to specific steering directives in the agent's logic. This ensures the model compensates for your biases and enhances your strengths.</p>
           </div>
 
           <div className="space-y-4">
@@ -153,7 +153,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
               </div>
               <div>
                 <h4 className="text-sm font-semibold">Recursive Memory</h4>
-                <p className="text-xs text-gray-500 mt-1">Directives injected via system prompt to guide procedural skills.</p>
+                <p className="text-xs text-text-muted-dark mt-1">Directives injected via system prompt to guide procedural skills.</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
@@ -162,12 +162,12 @@ export default function Tailor({ scores, onNext }: TailorProps) {
               </div>
               <div>
                 <h4 className="text-sm font-semibold">Bias Mitigation</h4>
-                <p className="text-xs text-gray-500 mt-1">Programmatically reduces agreeableness bias based on your score.</p>
+                <p className="text-xs text-text-muted-dark mt-1">Programmatically reduces agreeableness bias based on your score.</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-auto pt-6 border-t border-[#333]">
+          <div className="mt-auto pt-6 border-t border-border-primary">
             <button 
               onClick={onNext}
               className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 group"

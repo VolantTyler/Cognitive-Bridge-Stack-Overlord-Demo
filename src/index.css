@@ -1,14 +1,90 @@
 @import "tailwindcss";
 
+:root {
+  /* Dark Mode (Default) */
+  --bg-primary: #141414;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #1e1e1e;
+  --bg-surface: #252525;
+  --bg-card: #2d2d2d;
+  
+  --border-color: #333333;
+  --border-color-light: #444444;
+  --border-color-card: #3c3c3c;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-muted-dark: #6b7280;
+  --text-muted-darker: #4b5563;
+
+  /* Custom component values */
+  --bg-chat-user: #2563eb; /* blue-600 */
+  --bg-chat-model: #2d2d2d;
+  --border-chat-model: #444444;
+  --text-chat-model: #e5e7eb;
+
+  --bg-modal-aligned: #1a2e1a;
+  --bg-modal-unaligned: #2e1a1a;
+}
+
+:root.light {
+  /* Light Mode (Minimalist Oat Sepia) */
+  --bg-primary: #f7f4eb;
+  --bg-secondary: #ebe5d8;
+  --bg-tertiary: #dfd7c5;
+  --bg-surface: #d8cdb8;
+  --bg-card: #c8baa0;
+  
+  --border-color: #ded7c8;
+  --border-color-light: #c8baa0;
+  --border-color-card: #b8ab95;
+  
+  --text-primary: #1f1b14;
+  --text-secondary: #383226;
+  --text-muted: #665d4c;
+  --text-muted-dark: #8f8470;
+  --text-muted-darker: #a09580;
+
+  /* Custom component values for light mode readability */
+  --bg-chat-user: #8c7a65; /* warm brown/taupe for user bubbles in light mode */
+  --bg-chat-model: #ebe5d8;
+  --border-chat-model: #ded7c8;
+  --text-chat-model: #383226;
+
+  --bg-modal-aligned: #e8f5e9;
+  --bg-modal-unaligned: #ffebee;
+}
+
 @theme {
-  --color-bg: #141414;
-  --color-surface: #1e1e1e;
-  --color-border: #333333;
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-card: var(--bg-card);
+  
+  --color-border-primary: var(--border-color);
+  --color-border-secondary: var(--border-color-light);
+  --color-border-card: var(--border-color-card);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-muted-dark: var(--text-muted-dark);
+  --color-text-muted-darker: var(--text-muted-darker);
+
+  --color-bg-chat-user: var(--bg-chat-user);
+  --color-bg-chat-model: var(--bg-chat-model);
+  --color-border-chat-model: var(--border-chat-model);
+  --color-text-chat-model: var(--text-chat-model);
+
+  --color-bg-modal-aligned: var(--bg-modal-aligned);
+  --color-bg-modal-unaligned: var(--bg-modal-unaligned);
 }
 
 @layer base {
   body {
-    @apply bg-[#141414] text-white antialiased;
+    @apply bg-bg-primary text-text-primary antialiased transition-colors duration-300;
   }
 }
 
@@ -20,9 +96,9 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-[#333] rounded-full;
+    @apply bg-border-primary rounded-full;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-[#444];
+    @apply bg-border-secondary;
   }
 }
