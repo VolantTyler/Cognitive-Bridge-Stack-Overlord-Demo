@@ -14,9 +14,10 @@ interface MirrorProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   onComplete: (scores: OceanScores) => void;
+  onSaveSession?: (updatedMessages: Message[]) => void;
 }
 
-export default function Mirror({ messages, setMessages, onComplete }: MirrorProps) {
+export default function Mirror({ messages, setMessages, onComplete, onSaveSession }: MirrorProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,10 @@ export default function Mirror({ messages, setMessages, onComplete }: MirrorProp
     }
 
     setIsLoading(false);
+
+    if (onSaveSession && !modelResponse.includes('JSON_SCORES:')) {
+      onSaveSession([...messages, userMessage, { role: 'model', content: modelResponse }]);
+    }
   };
 
   return (
