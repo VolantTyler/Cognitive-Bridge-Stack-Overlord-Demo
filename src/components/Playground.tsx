@@ -194,8 +194,8 @@ export default function Playground({ scores, messages, setMessages, setScores }:
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className={`p-6 rounded-2xl border max-w-sm w-full shadow-2xl ${
-                activeAnalysis.type === 'aligned' ? 'bg-[#1a2e1a] border-green-500/50' : 'bg-[#2e1a1a] border-red-500/50'
+              className={`p-6 rounded-2xl border max-w-sm w-full shadow-2xl transition-colors duration-300 ${
+                activeAnalysis.type === 'aligned' ? 'bg-bg-modal-aligned border-green-500/50 text-text-primary' : 'bg-bg-modal-unaligned border-red-500/50 text-text-primary'
               }`}
               onClick={e => e.stopPropagation()}
             >
@@ -205,15 +205,15 @@ export default function Playground({ scores, messages, setMessages, setScores }:
                 </div>
                 <h4 className="font-bold text-sm uppercase tracking-widest">{activeAnalysis.type.toUpperCase()} ANALYSIS</h4>
               </div>
-              <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">Original Context:</p>
-              <blockquote className="border-l-2 border-white/10 pl-3 italic text-xs mb-4 text-gray-300">"{activeAnalysis.text}"</blockquote>
-              <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">Bridge Logic:</p>
-              <p className="text-sm leading-relaxed text-white">
+              <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-2">Original Context:</p>
+              <blockquote className="border-l-2 border-border-primary/40 pl-3 italic text-xs mb-4 text-text-secondary">"{activeAnalysis.text}"</blockquote>
+              <p className="text-text-muted text-[10px] uppercase font-bold tracking-wider mb-2">Bridge Logic:</p>
+              <p className="text-sm leading-relaxed text-text-primary">
                 {activeAnalysis.explanation}
               </p>
               <button 
                 onClick={() => setActiveAnalysis(null)}
-                className="mt-6 w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold uppercase transition-colors"
+                className="mt-6 w-full py-3 bg-bg-surface hover:bg-bg-tertiary border border-border-primary text-text-primary rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
               >
                 Dismiss Analysis
               </button>
@@ -222,14 +222,14 @@ export default function Playground({ scores, messages, setMessages, setScores }:
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col bg-[#1a1a1a] border border-[#333] rounded-xl overflow-hidden shadow-2xl relative min-w-0">
-        <div className="grid grid-cols-2 bg-[#252525] border-b border-[#333]">
-          <div className="p-4 flex items-center justify-between border-r border-[#333]">
+      <div className="flex-1 flex flex-col bg-bg-secondary border border-border-primary rounded-xl overflow-hidden shadow-2xl relative min-w-0 transition-colors duration-300">
+        <div className="grid grid-cols-2 bg-bg-surface border-b border-border-primary transition-colors duration-300">
+          <div className="p-4 flex items-center justify-between border-r border-border-primary">
             <div className="flex items-center gap-3">
               <Shield className="w-4 h-4 text-green-400" />
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-green-400">Aligned Bridge</span>
             </div>
-            <Zap className="w-3 h-3 text-white animate-pulse hidden sm:block" />
+            <Zap className="w-3 h-3 text-text-primary animate-pulse hidden sm:block" />
           </div>
           <div className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export default function Playground({ scores, messages, setMessages, setScores }:
 
         <div 
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-0 flex flex-col divide-y divide-[#333] custom-scrollbar"
+          className="flex-1 overflow-y-auto p-0 flex flex-col divide-y divide-border-primary custom-scrollbar transition-colors duration-300"
         >
           {messages.length === 0 && (
             <div className="p-20 flex flex-col items-center justify-center text-center opacity-30">
@@ -254,33 +254,33 @@ export default function Playground({ scores, messages, setMessages, setScores }:
 
           {messages.map((m, i) => (
             <div key={i} className="flex flex-col">
-              <div className="bg-[#1f1f1f] p-4 flex justify-center border-b border-[#333]">
+              <div className="bg-bg-tertiary p-4 flex justify-center border-b border-border-primary transition-colors duration-300">
                  <div className="flex items-center gap-3 bg-blue-600/10 px-4 py-2 rounded-full border border-blue-500/20 max-w-[90%] overflow-hidden">
                     <User className="w-3 h-3 text-blue-400 shrink-0" />
                     <span className="text-xs font-medium text-blue-200 italic truncate">{m.user}</span>
                  </div>
               </div>
               
-              <div className="grid grid-cols-2 divide-x divide-[#333] min-h-[100px]">
-                <div className="p-4 sm:p-6 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap bg-green-500/5">
-                   {m.aligned ? renderContent(m.aligned, 'aligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-[#333] animate-pulse rounded" /><div className="h-3 w-1/2 bg-[#333] animate-pulse rounded" /></div>)}
+              <div className="grid grid-cols-2 divide-x divide-border-primary min-h-[100px] transition-colors duration-300">
+                <div className="p-4 sm:p-6 text-sm text-text-primary leading-relaxed whitespace-pre-wrap bg-green-500/5">
+                   {m.aligned ? renderContent(m.aligned, 'aligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
                 </div>
-                <div className="p-4 sm:p-6 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap border-l border-red-500/10 bg-red-500/5">
-                   {m.unaligned ? renderContent(m.unaligned, 'unaligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-[#333] animate-pulse rounded" /><div className="h-3 w-1/2 bg-[#333] animate-pulse rounded" /></div>)}
+                <div className="p-4 sm:p-6 text-sm text-text-muted leading-relaxed whitespace-pre-wrap border-l border-red-500/10 bg-red-500/5">
+                   {m.unaligned ? renderContent(m.unaligned, 'unaligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
                 </div>
               </div>
             </div>
           ))}
           
           {isLoading && (
-            <div className="p-4 flex justify-center gap-2 bg-[#1a1a1a] border-t border-[#333]">
+            <div className="p-4 flex justify-center gap-2 bg-bg-secondary border-t border-border-primary transition-colors duration-300">
                <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-               <span className="text-[10px] uppercase font-bold tracking-widest text-gray-600">Generating Cognitive Delta...</span>
+               <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted-dark">Generating Cognitive Delta...</span>
             </div>
           )}
         </div>
 
-        <div className="p-4 bg-[#252525] border-t border-[#333]">
+        <div className="p-4 bg-bg-surface border-t border-border-primary transition-colors duration-300">
           <div className="relative">
             <textarea
               value={input}
@@ -292,7 +292,7 @@ export default function Playground({ scores, messages, setMessages, setScores }:
                 }
               }}
               placeholder="Ask a question to see the alignment gap..."
-              className="w-full bg-[#1a1a1a] border border-[#444] rounded-xl py-4 px-6 pr-14 text-sm focus:outline-none focus:border-blue-500 transition-all resize-none h-[64px]"
+              className="w-full bg-bg-secondary border border-border-secondary text-text-primary placeholder-text-muted-dark rounded-xl py-4 px-6 pr-14 text-sm focus:outline-none focus:border-blue-500 transition-all resize-none h-[64px]"
             />
             <button 
               onClick={handleSend}
@@ -306,10 +306,10 @@ export default function Playground({ scores, messages, setMessages, setScores }:
       </div>
 
       <div className="hidden lg:flex w-[320px] shrink-0 flex-col gap-6">
-        <div className="flex-1 p-6 bg-[#1f1f1f] border border-[#333] rounded-xl flex flex-col gap-4 overflow-hidden shadow-xl">
+        <div className="flex-1 p-6 bg-bg-tertiary border border-border-primary rounded-xl flex flex-col gap-4 overflow-hidden shadow-xl transition-colors duration-300">
            <div className="flex items-center gap-3">
               <Brain className="w-5 h-5 text-orange-500" />
-              <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-white">Logic Analysis</h4>
+              <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-text-primary">Logic Analysis</h4>
            </div>
            
            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -331,22 +331,22 @@ export default function Playground({ scores, messages, setMessages, setScores }:
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Proof Point:</p>
-                      <blockquote className="p-4 bg-white/5 border-l-2 border-orange-500 rounded-r-lg italic text-sm text-gray-300">
+                      <p className="text-[10px] uppercase font-bold text-text-muted-dark tracking-wider">Proof Point:</p>
+                      <blockquote className="p-4 bg-bg-primary/40 border-l-2 border-orange-500 rounded-r-lg italic text-sm text-text-secondary">
                         "{activeAnalysis.text}"
                       </blockquote>
                     </div>
 
                     <div className="space-y-3">
-                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Alignment Explanation:</p>
-                      <p className="text-sm leading-relaxed text-gray-400">
+                      <p className="text-[10px] uppercase font-bold text-text-muted-dark tracking-wider">Alignment Explanation:</p>
+                      <p className="text-sm leading-relaxed text-text-muted">
                         {activeAnalysis.explanation}
                       </p>
                     </div>
 
                     <button 
                       onClick={() => setActiveAnalysis(null)}
-                      className="text-[10px] uppercase font-bold text-gray-600 hover:text-white transition-colors"
+                      className="text-[10px] uppercase font-bold text-text-muted-darker hover:text-text-primary transition-colors cursor-pointer"
                     >
                       Clear Selection
                     </button>
@@ -358,8 +358,8 @@ export default function Playground({ scores, messages, setMessages, setScores }:
                     animate={{ opacity: 1 }}
                     className="h-full flex flex-col items-center justify-center text-center p-4"
                   >
-                    <Info className="w-10 h-10 text-gray-700 mb-4" />
-                    <p className="text-xs text-gray-500 italic">Select a highlighted section in the bridge chat to view its psychometric derivation and alignment logic.</p>
+                    <Info className="w-10 h-10 text-text-muted-dark mb-4" />
+                    <p className="text-xs text-text-muted-dark italic">Select a highlighted section in the bridge chat to view its psychometric derivation and alignment logic.</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -371,13 +371,13 @@ export default function Playground({ scores, messages, setMessages, setScores }:
            <div className="space-y-4">
               <div className="flex items-start gap-2">
                 <Shield className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-gray-400 leading-relaxed italic">
+                <p className="text-[11px] text-text-muted leading-relaxed italic">
                   Aligned: Dampens psychological extremes to prevent "Yes-Manning" and confirmation loops.
                 </p>
               </div>
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-gray-300 leading-relaxed italic">
+                <p className="text-[11px] text-text-secondary leading-relaxed italic">
                   Inverse: Amplifies user tendencies to show the "Raw Personality" output without bridge correction.
                 </p>
               </div>
