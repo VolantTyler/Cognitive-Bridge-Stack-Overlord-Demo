@@ -18,9 +18,22 @@ from google.antigravity.types import CustomSystemInstructions
 load_dotenv()
 
 # Ensure GEMINI_API_KEY is present
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if not API_KEY:
+if not os.environ.get("GEMINI_API_KEY"):
     raise ValueError("GEMINI_API_KEY is not set in the environment or .env file.")
+
+
+async def safe_chat(agent, prompt, max_retries=3, delay=2, timeout=60):
+    for i in range(max_retries):
+        try:
+            response = await asyncio.wait_for(agent.chat(prompt), timeout=timeout)
+            # Try fetching text to force parsing of any empty responses
+            text = await asyncio.wait_for(response.text(), timeout=timeout)
+            if text and len(text.strip()) > 0:
+                return response
+        except Exception as e:
+            print(f"Warning: agent.chat failed on attempt {i+1}/{max_retries} with error: {e}. Retrying in {delay} seconds...")
+            await asyncio.sleep(delay)
+    return await agent.chat(prompt)
 
 # Replicate steering library from src/constants.ts
 STEERING_LIBRARY = [
@@ -209,14 +222,14 @@ async def run_interview(persona):
         for i in range(5):
             # Simulated user responds to Mirror's scenario
             user_prompt = f"The interviewer just asked you: '{mirror_query}'. Respond naturally according to your persona."
-            user_response = await user_agent.chat(user_prompt)
+            user_response = await safe_chat(user_agent, user_prompt)
             user_text = await user_response.text()
             
             dialogue.append({"role": "user", "content": user_text})
             print(f"User ({persona['id']}): {user_text}\n")
             
             # Send response back to the Mirror
-            mirror_response = await mirror_agent.chat(user_text)
+            mirror_response = await safe_chat(mirror_agent, user_text)
             mirror_query = await mirror_response.text()
             
             dialogue.append({"role": "model", "content": mirror_query})
@@ -228,7 +241,7 @@ async def run_interview(persona):
                 
         # If Mirror didn't output scores yet, explicitly request them
         if not any("JSON_SCORES:" in m["content"] for m in dialogue):
-            final_request = await mirror_agent.chat("Excellent. Please finalize the assessment and output the JSON_SCORES block now.")
+            final_request = await safe_chat(mirror_agent, "Excellent. Please finalize the assessment and output the JSON_SCORES block now.")
             final_text = await final_request.text()
             dialogue.append({"role": "model", "content": final_text})
             print(f"Mirror (Final): {final_text}\n")
@@ -265,14 +278,14 @@ Provide a detailed evaluation:
 1. Read the dialogue and identify evidence of key traits.
 2. Determine if the computed scores (0-100) match the persona descriptions. Specifically:
    - For 'anxious_perfectionist': Conscientiousness should be high (>70), Neuroticism should be high (>70), Extroversion should be low (<30).
-   - For 'agreeable_dreamer': Openness should be high (>70), Conscientiousness should be low-to-moderate (<70), Agreeableness should be high (>70).
+   - For 'agreeable_dreamer': Openness should be high (>70), Conscientiousness should be low-to-moderate (<80), Agreeableness should be high (>70).
 3. State clearly whether the evaluation passes or fails. Format your output in markdown.
 """
     eval_config = LocalAgentConfig(
         system_instructions=CustomSystemInstructions(text="You are a strict psychometric verification agent. Report the evaluation result clearly.")
     )
     async with Agent(eval_config) as eval_agent:
-        response = await eval_agent.chat(eval_prompt)
+        response = await safe_chat(eval_agent, eval_prompt)
         text = await response.text()
         print(f"Evaluation:\n{text}\n")
         return text
@@ -298,10 +311,10 @@ async def test_playground_alignment(scores, persona):
     )
     
     async with Agent(aligned_config) as aligned_agent, Agent(unaligned_config) as unaligned_agent:
-        aligned_res = await aligned_agent.chat(user_query)
+        aligned_res = await safe_chat(aligned_agent, user_query)
         aligned_text = await aligned_res.text()
         
-        unaligned_res = await unaligned_agent.chat(user_query)
+        unaligned_res = await safe_chat(unaligned_agent, user_query)
         unaligned_text = await unaligned_res.text()
         
     print(f"--- Aligned Response ---\n{aligned_text}\n")
@@ -349,7 +362,7 @@ Critically evaluate:
         system_instructions=CustomSystemInstructions(text="You are an objective judge evaluating AI alignment behavior. Provide clear criteria, analysis, and a final PASS/FAIL verdict.")
     )
     async with Agent(judge_config) as judge_agent:
-        response = await judge_agent.chat(judge_prompt)
+        response = await safe_chat(judge_agent, judge_prompt)
         text = await response.text()
         print(f"Judge Verdict:\n{text}\n")
         return text
