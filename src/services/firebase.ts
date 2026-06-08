@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -17,6 +17,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+// Set custom parameters (e.g. prompt: 'select_account' to allow changing account)
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Initialize Cloud Firestore
 const dbId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
@@ -25,4 +28,4 @@ const db = dbId ? getFirestore(app, dbId) : getFirestore(app);
 // Initialize Cloud Storage
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+export { app, auth, googleProvider, db, storage };

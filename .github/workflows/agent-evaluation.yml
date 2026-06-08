@@ -1,0 +1,45 @@
+name: Psychometric Agent Evaluation
+
+on:
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly at Sunday 00:00 UTC
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  run-evaluation:
+    name: Run Agent Testing & Alignment Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Multi-Agent Evaluation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          source venv/bin/activate
+          python scripts/agent_eval.py
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-test-report
+          path: agent_test_report.md
+          retention-days: 30

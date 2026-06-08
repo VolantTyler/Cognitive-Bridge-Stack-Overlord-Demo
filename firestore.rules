@@ -7,5 +7,80 @@ service cloud.firestore {
                     && request.resource.data.message is string;
       allow read, update, delete: if false;
     }
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: users
+    // Document ID: userId (matches user's Firebase Auth UID)
+    // Fields:
+    //   - scores: map (optional) - calibrated OCEAN scores
+    //     - openness: number (0 to 100)
+    //     - conscientiousness: number (0 to 100)
+    //     - extroversion: number (0 to 100)
+    //     - agreeableness: number (0 to 100)
+    //     - neuroticism: number (0 to 100)
+    //   - activeModule: string (required) - current active module
+    //   - mirrorMessages: list of maps (required) - message history from mirror module
+    //     - role: string
+    //     - content: string
+    //   - playgroundMessages: list of maps (required) - message history from playground module
+    //     - user: string
+    //     - aligned: string
+    //     - unaligned: string
+    //     - loading: bool
+    //   - updatedAt: timestamp (required) - time of last update
+    //
+    // ===============================================================
+
+    // Default deny for all documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidScores(scores) {
+      return scores.keys().hasOnly(['openness', 'conscientiousness', 'extroversion', 'agreeableness', 'neuroticism']) &&
+             scores.openness is number && scores.openness >= 0 && scores.openness <= 100 &&
+             scores.conscientiousness is number && scores.conscientiousness >= 0 && scores.conscientiousness <= 100 &&
+             scores.extroversion is number && scores.extroversion >= 0 && scores.extroversion <= 100 &&
+             scores.agreeableness is number && scores.agreeableness >= 0 && scores.agreeableness <= 100 &&
+             scores.neuroticism is number && scores.neuroticism >= 0 && scores.neuroticism <= 100;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
+             hasOnlyAllowedFields(['scores', 'activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
+             (data.activeModule in ['mirror', 'tailor', 'playground']) &&
+             (data.scores == null || isValidScores(data.scores)) &&
+             data.mirrorMessages is list && data.mirrorMessages.size() <= 100 &&
+             data.playgroundMessages is list && data.playgroundMessages.size() <= 100 &&
+             data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
   }
 }

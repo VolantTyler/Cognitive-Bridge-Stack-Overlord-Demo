@@ -15,9 +15,10 @@ interface PlaygroundProps {
   messages: ComparisonMessage[];
   setMessages: React.Dispatch<React.SetStateAction<ComparisonMessage[]>>;
   setScores: React.Dispatch<React.SetStateAction<OceanScores | null>>;
+  onSaveSession?: (updatedMessages: ComparisonMessage[], updatedScores?: OceanScores) => void;
 }
 
-export default function Playground({ scores, messages, setMessages, setScores }: PlaygroundProps) {
+export default function Playground({ scores, messages, setMessages, setScores, onSaveSession }: PlaygroundProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<{ text: string, explanation: string, type: string } | null>(null);
@@ -35,8 +36,9 @@ export default function Playground({ scores, messages, setMessages, setScores }:
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const userPrompt = input;
     const newMessage: ComparisonMessage = {
-      user: input,
+      user: userPrompt,
       aligned: '',
       unaligned: '',
       loading: true
@@ -75,6 +77,11 @@ export default function Playground({ scores, messages, setMessages, setScores }:
     await Promise.all([alignedPromise, unalignedPromise]);
     updateMessage(currentMessageIndex, { loading: false });
     setIsLoading(false);
+
+    if (onSaveSession) {
+      const finalMessages = [...messages, { user: userPrompt, aligned: alignedText, unaligned: unalignedText, loading: false }];
+      onSaveSession(finalMessages);
+    }
   };
 
   const updateMessage = (index: number, patch: Partial<ComparisonMessage>) => {
@@ -148,6 +155,11 @@ export default function Playground({ scores, messages, setMessages, setScores }:
       return updated;
     });
     setIsLoading(false);
+
+    if (onSaveSession) {
+      const finalMessages = [...messages, { user: presetPrompt, aligned: alignedText, unaligned: unalignedText, loading: false }];
+      onSaveSession(finalMessages, presetScores);
+    }
   };
 
   const renderContent = (text: string, type: 'aligned' | 'unaligned') => {
@@ -165,11 +177,9 @@ export default function Playground({ scores, messages, setMessages, setScores }:
           <button
             key={i}
             onClick={() => setActiveAnalysis({ text: content, explanation, type })}
-            className={`cursor-help transition-all duration-300 font-medium ${
-              type === 'aligned' 
-                ? `${isActive ? 'bg-green-500/30 text-white underline decoration-green-400' : 'bg-green-500/10 text-green-300 decoration-green-500/30 underline decoration-dotted'}` 
-                : `${isActive ? 'bg-red-500/30 text-white underline decoration-red-400' : 'bg-red-500/10 text-red-300 decoration-red-500/30 underline decoration-dotted'}`
-            }`}
+            className={`cursor-help transition-all duration-300 font-medium mark-bridge-highlight ${
+              type === 'aligned' ? 'mark-aligned' : 'mark-unaligned'
+            } ${isActive ? 'active' : ''}`}
           >
             {content}
           </button>

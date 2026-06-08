@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cognitive Bridge</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const link = document.querySelector("link[rel~='icon']");
+        if (link) {
+          link.href = '/favicon-local.svg';
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -74,6 +74,10 @@ CRITICAL INSTRUCTIONS:
 - Keep the conversation engaging and psychological.
 - Every few messages, internalize the scores.
 - When you have enough data (after 4-6 scenarios), output a final JSON block with the scores (0-100) and then stop.
+- ALWAYS break up your comments and the next scenario/stress test: add a blank line and the prefix "Next question: " before the scenario. For example:
+  "Truth as a cold, hard constant. You seem to view social harmony as a secondary concern, perhaps even a distraction from objective reality.
+
+  Next question: Let’s change the setting. You have spent months..."
 
 Format for final output:
 JSON_SCORES:

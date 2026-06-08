@@ -15,11 +15,11 @@ interface TailorProps {
 }
 
 const TRAIT_CONFIG = {
-  openness: { label: 'Openness', icon: SparklesIcon, color: 'text-purple-400', bg: 'bg-purple-900/20' },
-  conscientiousness: { label: 'Conscientiousness', icon: Activity, color: 'text-blue-400', bg: 'bg-blue-900/20' },
-  extroversion: { label: 'Extroversion', icon: Users, color: 'text-yellow-400', bg: 'bg-yellow-900/20' },
-  agreeableness: { label: 'Agreeableness', icon: Heart, color: 'text-green-400', bg: 'bg-green-900/20' },
-  neuroticism: { label: 'Neuroticism', icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-900/20' },
+  openness: { label: 'Openness', icon: SparklesIcon, color: 'text-purple-400', bgBar: 'bg-purple-400', bgShaded: 'bg-purple-900/40', bg: 'bg-purple-900/20' },
+  conscientiousness: { label: 'Conscientiousness', icon: Activity, color: 'text-blue-400', bgBar: 'bg-blue-400', bgShaded: 'bg-blue-900/40', bg: 'bg-blue-900/20' },
+  extroversion: { label: 'Extroversion', icon: Users, color: 'text-yellow-400', bgBar: 'bg-yellow-400', bgShaded: 'bg-yellow-900/40', bg: 'bg-yellow-900/20' },
+  agreeableness: { label: 'Agreeableness', icon: Heart, color: 'text-green-400', bgBar: 'bg-green-400', bgShaded: 'bg-green-900/40', bg: 'bg-green-900/20' },
+  neuroticism: { label: 'Neuroticism', icon: ShieldAlert, color: 'text-red-400', bgBar: 'bg-red-400', bgShaded: 'bg-red-900/40', bg: 'bg-red-900/20' },
 };
 
 function SparklesIcon(props: any) {
@@ -56,7 +56,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
             >
               {/* Shaded background based on score */}
               <div 
-                className={`absolute left-0 top-0 bottom-0 ${config.bg.replace('/20', '/40')} opacity-20 pointer-events-none transition-all duration-700`}
+                className={`absolute left-0 top-0 bottom-0 ${config.bgShaded} opacity-20 pointer-events-none transition-all duration-700`}
                 style={{ width: `${value}%` }}
               />
               
@@ -72,7 +72,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${value}%` }}
-                  className={`h-full ${config.color.replace('text', 'bg')} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
+                  className={`h-full ${config.bgBar} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
                 />
               </div>
             </motion.div>
