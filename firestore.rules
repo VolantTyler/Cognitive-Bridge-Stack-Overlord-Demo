@@ -3,10 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Allow public write-only access to the feedback collection
     match /feedback/{document} {
-      allow create: if request.resource.data.email is string
-                    && request.resource.data.message is string;
+      allow create: if isValidFeedback(request.resource.data);
       allow read, update, delete: if false;
     }
+
     // ===============================================================
     // Assumed Data Model
     // ===============================================================
@@ -33,6 +33,14 @@ service cloud.firestore {
     //     - loading: bool
     //   - updatedAt: timestamp (required) - time of last update
     //
+    // Collection: feedback
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, 1 to 100 characters) - user's name or 'Anonymous'
+    //   - email: string (required, valid email format) - user's email address
+    //   - message: string (required, 1 to 5000 characters) - the feedback message
+    //   - createdAt: timestamp (required) - time of submission
+    //
     // ===============================================================
 
     // Default deny for all documents
@@ -57,6 +65,11 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(fields);
     }
 
+    function isValidEmail(email) {
+      return email is string &&
+             email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
     function isValidScores(scores) {
       return scores.keys().hasOnly(['openness', 'conscientiousness', 'extroversion', 'agreeableness', 'neuroticism']) &&
              scores.openness is number && scores.openness >= 0 && scores.openness <= 100 &&
@@ -74,6 +87,15 @@ service cloud.firestore {
              data.mirrorMessages is list && data.mirrorMessages.size() <= 100 &&
              data.playgroundMessages is list && data.playgroundMessages.size() <= 100 &&
              data.updatedAt is timestamp;
+    }
+
+    function isValidFeedback(data) {
+      return hasRequiredFields(['name', 'email', 'message', 'createdAt']) &&
+             hasOnlyAllowedFields(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             isValidEmail(data.email) && data.email.size() <= 200 &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 5000 &&
+             data.createdAt == request.time;
     }
 
     match /users/{userId} {

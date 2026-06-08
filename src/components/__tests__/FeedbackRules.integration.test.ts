@@ -35,4 +35,16 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
       getDocs(feedbackRef)
     ).rejects.toThrow(/insufficient permissions|permission-denied/i);
   });
+
+  test('writing to feedback with valid schema succeeds', async () => {
+    const feedbackRef = collection(db, 'feedback');
+
+    const docRef = await addDoc(feedbackRef, {
+      name: 'Valid integration test user',
+      email: 'valid-test@example.com',
+      message: 'Integration test message',
+      createdAt: serverTimestamp(),
+    });
+    expect(docRef.id).toBeDefined();
+  });
 });
