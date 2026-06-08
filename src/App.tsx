@@ -11,10 +11,12 @@ import { INITIAL_OCEAN } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
+import FeedbackModal from './components/FeedbackModal';
 
 export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
   const [scores, setScores] = useState<OceanScores | null>(null);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
   // Theme state initialized from localStorage
   const [isLightMode, setIsLightMode] = useState(() => {
@@ -213,6 +215,13 @@ export default function App() {
           <span>Tyler J. Stahl</span>
           <span className="text-border-primary">/</span>
           <span>Cognitive Bridge v1.0.4-BETA</span>
+          <span className="text-border-primary">/</span>
+          <button
+            onClick={() => setIsFeedbackOpen(true)}
+            className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer"
+          >
+            Leave Feedback
+          </button>
         </div>
         <div className="flex gap-4">
           <span className="text-orange-500/50">Model: Gemini 3.1 Pro // Flash</span>
@@ -220,6 +229,8 @@ export default function App() {
           <span>Procedural Skills Engine</span>
         </div>
       </footer>
+
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }
