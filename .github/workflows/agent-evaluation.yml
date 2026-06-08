@@ -3,6 +3,12 @@ name: Psychometric Agent Evaluation
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/constants.ts'
+      - 'src/services/gemini.ts'
+      - 'scripts/agent_eval.py'
+      - 'requirements.txt'
+      - '.github/workflows/agent-evaluation.yml'
   schedule:
     - cron: '0 0 * * 0' # Weekly at Sunday 00:00 UTC
   workflow_dispatch: # Allows manual trigger from GitHub UI
