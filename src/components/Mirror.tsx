@@ -14,9 +14,54 @@ interface MirrorProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   onComplete: (scores: OceanScores) => void;
+  onSaveSession?: (updatedMessages: Message[]) => void;
 }
 
-export default function Mirror({ messages, setMessages, onComplete }: MirrorProps) {
+function formatMirrorContent(content: string): string {
+  // Remove JSON_SCORES part first
+  let text = content.split('JSON_SCORES:')[0];
+  
+  // If "Next question:" is already in the text, make sure it has a newline before it
+  if (text.includes('Next question:')) {
+    text = text.replace(/([^\n])\s*Next question:/g, '$1\n\nNext question:');
+    return text;
+  }
+
+  // Common scenario transition phrases:
+  const transitions = [
+    /Let’s change the setting/i,
+    /Let's change the setting/i,
+    /Let's try a different scenario/i,
+    /Let’s try a different scenario/i,
+    /Let's move to a/i,
+    /Let’s move to a/i,
+    /Let's look at another/i,
+    /Let’s look at another/i,
+    /For your next scenario/i,
+    /For the next scenario/i,
+    /Here is a new scenario/i,
+    /Imagine this:/i,
+    /Consider this setting/i,
+    /Now, let's change/i,
+    /Now, let’s change/i
+  ];
+
+  for (const regex of transitions) {
+    const match = text.match(regex);
+    if (match && match.index !== undefined) {
+      const index = match.index;
+      const before = text.slice(0, index).trim();
+      const after = text.slice(index);
+      if (before.length > 0) {
+        return `${before}\n\nNext question: ${after}`;
+      }
+    }
+  }
+
+  return text;
+}
+
+export default function Mirror({ messages, setMessages, onComplete, onSaveSession }: MirrorProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -70,6 +115,10 @@ export default function Mirror({ messages, setMessages, onComplete }: MirrorProp
     }
 
     setIsLoading(false);
+
+    if (onSaveSession && !modelResponse.includes('JSON_SCORES:')) {
+      onSaveSession([...messages, userMessage, { role: 'model', content: modelResponse }]);
+    }
   };
 
   return (
@@ -118,13 +167,13 @@ export default function Mirror({ messages, setMessages, onComplete }: MirrorProp
                 }`}>
                   {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   m.role === 'user' 
                     ? 'bg-bg-chat-user text-white rounded-tr-none' 
                     : 'bg-bg-chat-model text-text-chat-model rounded-tl-none border border-border-chat-model'
                 }`}>
-                  {m.content.split('JSON_SCORES:')[0]}
-                  {m.content.includes('JSON_SCORES:') && (
+                  {m.role === 'user' ? m.content : formatMirrorContent(m.content)}
+                  {m.role === 'model' && m.content.includes('JSON_SCORES:') && (
                     <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg flex items-center gap-3 animate-pulse">
                       <Sparkles className="text-green-500 w-4 h-4" />
                       <span className="text-green-400 font-medium">Cognitive mapping complete.</span>

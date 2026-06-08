@@ -3,16 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github } from 'lucide-react';
+import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon } from 'lucide-react';
 import { ModuleId, OceanScores, Message, ComparisonMessage } from './types';
 import { INITIAL_OCEAN } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
 
+import { auth, googleProvider, db } from './services/firebase';
+import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
 export default function App() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
   const [scores, setScores] = useState<OceanScores | null>(null);
   
@@ -44,9 +49,118 @@ export default function App() {
   ]);
   const [playgroundMessages, setPlaygroundMessages] = useState<ComparisonMessage[]>([]);
 
+  // Refs to capture the latest state in the onAuthStateChanged closure
+  const scoresRef = useRef(scores);
+  const mirrorMessagesRef = useRef(mirrorMessages);
+  const playgroundMessagesRef = useRef(playgroundMessages);
+  const activeModuleRef = useRef(activeModule);
+
+  useEffect(() => { scoresRef.current = scores; }, [scores]);
+  useEffect(() => { mirrorMessagesRef.current = mirrorMessages; }, [mirrorMessages]);
+  useEffect(() => { playgroundMessagesRef.current = playgroundMessages; }, [playgroundMessages]);
+  useEffect(() => { activeModuleRef.current = activeModule; }, [activeModule]);
+
+  // Firestore save wrapper (stream-settlement optimized)
+  const saveToCloud = async (
+    updatedScores: OceanScores | null,
+    updatedMirror: Message[],
+    updatedPlayground: ComparisonMessage[],
+    updatedModule: ModuleId
+  ) => {
+    if (!auth.currentUser) return;
+    try {
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      await setDoc(userDocRef, {
+        scores: updatedScores,
+        mirrorMessages: updatedMirror,
+        playgroundMessages: updatedPlayground.map(msg => ({
+          user: msg.user,
+          aligned: msg.aligned,
+          unaligned: msg.unaligned,
+          loading: false
+        })),
+        activeModule: updatedModule,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Failed to save session to cloud:", error);
+    }
+  };
+
+  // Auth State Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        
+        // Check for existing cloud profile
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        try {
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            setScores(data.scores || null);
+            setMirrorMessages(data.mirrorMessages || []);
+            setPlaygroundMessages(data.playgroundMessages || []);
+            setActiveModule(data.activeModule || 'mirror');
+          } else {
+            // New user: Migrate local guest session to Cloud
+            await setDoc(userDocRef, {
+              scores: scoresRef.current,
+              mirrorMessages: mirrorMessagesRef.current,
+              playgroundMessages: playgroundMessagesRef.current.map(msg => ({
+                user: msg.user,
+                aligned: msg.aligned,
+                unaligned: msg.unaligned,
+                loading: false
+              })),
+              activeModule: activeModuleRef.current,
+              updatedAt: serverTimestamp()
+            });
+          }
+        } catch (error) {
+          console.error("Error restoring/migrating session:", error);
+        }
+      } else {
+        setUser(null);
+        // Clean slate on disconnect / local guest mode
+        setScores(null);
+        setMirrorMessages([
+          { role: 'model', content: "Welcome to the Mirror. I am here to explore the architecture of your mind. Let's begin with a scenario. You are 10 minutes away from a critical project demo when you discover a significant bug. Do you apply a quick, messy 'dirty hack' to fix it for the demo, or do you cancel the presentation to resolve it properly?" }
+        ]);
+        setPlaygroundMessages([]);
+        setActiveModule('mirror');
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Google Sign-In failed:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
+
   const handleMirrorComplete = (newScores: OceanScores) => {
     setScores(newScores);
     setActiveModule('tailor');
+    saveToCloud(newScores, mirrorMessages, playgroundMessages, 'tailor');
+  };
+
+  const handleMirrorSave = (updatedMirrorMessages: Message[]) => {
+    setMirrorMessages(updatedMirrorMessages);
+    saveToCloud(scores, updatedMirrorMessages, playgroundMessages, activeModule);
   };
 
   const currentStep = scores ? (activeModule === 'playground' ? 3 : 2) : 1;
@@ -62,8 +176,8 @@ export default function App() {
           <span className="font-bold tracking-tight text-lg">COGNITIVE BRIDGE <span className="text-[10px] font-mono text-orange-500 ml-1 border border-orange-500/30 px-1 rounded uppercase">v1.0</span></span>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex items-center gap-8">
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-8 mr-2">
             {[
               { id: 'mirror', label: '1. The Mirror', active: activeModule === 'mirror' },
               { id: 'tailor', label: '2. The Tailor', active: activeModule === 'tailor', disabled: !scores },
@@ -82,6 +196,46 @@ export default function App() {
               </button>
             ))}
           </div>
+
+          {/* Connection Status Bar */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
+            <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
+            <span className={user ? 'text-green-400' : 'text-amber-500'}>
+              {user ? 'Cloud Synced' : 'Local Guest'}
+            </span>
+          </div>
+
+          {/* Profile Calibration Header / Connect Action */}
+          {user ? (
+            <div className="flex items-center gap-3 bg-bg-tertiary border border-border-primary rounded-xl pl-3 pr-2 py-1 select-none shadow-sm">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-text-primary truncate max-w-[100px]" title={user.displayName || user.email || ''}>
+                  {user.displayName || user.email?.split('@')[0]}
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="text-[9px] text-text-muted hover:text-red-400 transition-colors uppercase font-bold tracking-wider cursor-pointer"
+                >
+                  Disconnect
+                </button>
+              </div>
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="profile" className="w-7 h-7 rounded-lg border border-border-secondary object-cover" />
+              ) : (
+                <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center border border-border-secondary text-white text-xs font-bold">
+                  {(user.displayName || user.email || '?')[0].toUpperCase()}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
+            >
+              <Brain className="w-3.5 h-3.5 text-orange-200" />
+              <span>Login to Save Results</span>
+            </button>
+          )}
 
           {/* Theme Toggle Button */}
           <button
@@ -159,6 +313,7 @@ export default function App() {
                   messages={mirrorMessages}
                   setMessages={setMirrorMessages}
                   onComplete={handleMirrorComplete}
+                  onSaveSession={handleMirrorSave}
                 />
               </div>
             </motion.div>
@@ -177,7 +332,13 @@ export default function App() {
                 <span className="text-text-muted-dark">Bridge Active</span>
               </div>
               <div className="flex-1">
-                <Tailor scores={scores} onNext={() => setActiveModule('playground')} />
+                <Tailor 
+                  scores={scores} 
+                  onNext={() => {
+                    setActiveModule('playground');
+                    saveToCloud(scores, mirrorMessages, playgroundMessages, 'playground');
+                  }} 
+                />
               </div>
             </motion.div>
           )}
@@ -200,6 +361,13 @@ export default function App() {
                   messages={playgroundMessages}
                   setMessages={setPlaygroundMessages}
                   setScores={setScores}
+                  onSaveSession={(updatedPlayground, updatedScores) => {
+                    const finalScores = updatedScores || scores;
+                    if (updatedScores) {
+                      setScores(updatedScores);
+                    }
+                    saveToCloud(finalScores, mirrorMessages, updatedPlayground, activeModule);
+                  }}
                 />
               </div>
             </motion.div>
