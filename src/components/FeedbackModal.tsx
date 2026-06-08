@@ -18,6 +18,17 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Reset modal state on open
+  useEffect(() => {
+    if (isOpen) {
+      setName('');
+      setEmail('');
+      setMessage('');
+      setStatus('idle');
+      setErrorMsg('');
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

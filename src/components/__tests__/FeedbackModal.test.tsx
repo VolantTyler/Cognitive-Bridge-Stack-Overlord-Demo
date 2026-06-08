@@ -175,4 +175,37 @@ describe('FeedbackModal Component', () => {
       expect(screen.getByText('Firebase network error')).toBeInTheDocument();
     });
   });
+
+  it('resets form state when isOpen transitions from false to true', async () => {
+    mockAddDoc.mockResolvedValueOnce({ id: 'mock-doc-id' });
+    
+    // 1. Render modal as open
+    const { rerender } = render(<FeedbackModal isOpen={true} onClose={() => {}} />);
+    
+    const emailInput = screen.getByLabelText(/Email Address/i) as HTMLInputElement;
+    const messageInput = screen.getByLabelText(/Message/i) as HTMLTextAreaElement;
+    const form = screen.getByTestId('feedback-form');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(messageInput, { target: { value: 'Great app!' } });
+
+    fireEvent.submit(form);
+
+    // Wait for submission success view to show
+    await waitFor(() => {
+      expect(screen.getByTestId('success-view')).toBeInTheDocument();
+    });
+
+    // 2. Rerender with isOpen = false (closing modal)
+    rerender(<FeedbackModal isOpen={false} onClose={() => {}} />);
+
+    // 3. Rerender with isOpen = true (re-opening modal)
+    rerender(<FeedbackModal isOpen={true} onClose={() => {}} />);
+
+    // Form should be clean, not showing success view or prefilled fields
+    expect(screen.getByTestId('feedback-form')).toBeInTheDocument();
+    expect(screen.queryByTestId('success-view')).toBeNull();
+    expect((screen.getByLabelText(/Email Address/i) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/Message/i) as HTMLTextAreaElement).value).toBe('');
+  });
 });
