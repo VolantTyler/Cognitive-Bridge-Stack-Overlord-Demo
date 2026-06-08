@@ -407,7 +407,8 @@ async def main():
         report.append("---\n")
         
     # Write report file
-    report_file_path = "/Users/tylerstahl/antigravity/Cognitive-Bridge-Antigravity/agent_test_report.md"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    report_file_path = os.path.join(base_dir, "agent_test_report.md")
     with open(report_file_path, "w") as f:
         f.write("\n".join(report))
         
