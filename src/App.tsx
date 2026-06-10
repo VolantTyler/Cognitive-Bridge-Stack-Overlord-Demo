@@ -179,7 +179,7 @@ export default function App() {
           <div className="w-8 h-8 rounded bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/10">
             <Layers className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold tracking-tight text-lg">COGNITIVE BRIDGE <span className="text-[10px] font-mono text-orange-500 ml-1 border border-orange-500/30 px-1 rounded uppercase">v1.0</span></span>
+          <span className="font-bold tracking-tight text-sm sm:text-lg">COGNITIVE BRIDGE <span className="hidden sm:inline-block text-[10px] font-mono text-orange-500 ml-1 border border-orange-500/30 px-1 rounded uppercase">v1.0</span></span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -204,17 +204,17 @@ export default function App() {
           </div>
 
           {/* Connection Status Bar */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
+          <div className="flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
             <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
-            <span className={user ? 'text-green-400' : 'text-amber-500'}>
+            <span className={`hidden sm:inline ${user ? 'text-green-400' : 'text-amber-500'}`}>
               {user ? 'Cloud Synced' : 'Local Guest'}
             </span>
           </div>
 
           {/* Profile Calibration Header / Connect Action */}
           {user ? (
-            <div className="flex items-center gap-3 bg-bg-tertiary border border-border-primary rounded-xl pl-3 pr-2 py-1 select-none shadow-sm">
-              <div className="flex flex-col items-end">
+            <div className="flex items-center bg-bg-tertiary border border-border-primary rounded-xl p-1 sm:pl-3 sm:pr-2 sm:py-1 select-none shadow-sm">
+              <div className="hidden sm:flex flex-col items-end mr-3">
                 <span className="text-[10px] font-bold text-text-primary truncate max-w-[100px]" title={user.displayName || user.email || ''}>
                   {user.displayName || user.email?.split('@')[0]}
                 </span>
@@ -225,21 +225,29 @@ export default function App() {
                   Disconnect
                 </button>
               </div>
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="profile" className="w-7 h-7 rounded-lg border border-border-secondary object-cover" />
-              ) : (
-                <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center border border-border-secondary text-white text-xs font-bold">
-                  {(user.displayName || user.email || '?')[0].toUpperCase()}
-                </div>
-              )}
+              <button
+                onClick={handleLogout}
+                title="Click to Disconnect"
+                className="cursor-pointer group relative flex items-center justify-center"
+              >
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="profile" className="w-7 h-7 rounded-lg border border-border-secondary object-cover group-hover:border-red-500/50 transition-colors" />
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center border border-border-secondary text-white text-xs font-bold group-hover:border-red-500/50 transition-colors">
+                    {(user.displayName || user.email || '?')[0].toUpperCase()}
+                  </div>
+                )}
+              </button>
             </div>
           ) : (
             <button
               onClick={handleLogin}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
+              className="flex items-center justify-center gap-2 p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
+              title="Login to Save Results"
             >
-              <Brain className="w-3.5 h-3.5 text-orange-200" />
-              <span>Login to Save Results</span>
+              <UserIcon className="w-3.5 h-3.5 text-orange-200 sm:hidden" />
+              <Brain className="w-3.5 h-3.5 text-orange-200 hidden sm:inline" />
+              <span className="hidden sm:inline">Login to Save Results</span>
             </button>
           )}
 
@@ -276,6 +284,30 @@ export default function App() {
         </div>
 
       </nav>
+
+      {/* Mobile/Tablet Secondary Navigation */}
+      <div className="flex md:hidden bg-bg-secondary border-b border-border-primary px-4 py-2.5 justify-around items-center sticky top-16 z-40 transition-colors duration-300">
+        {[
+          { id: 'mirror', label: '1. Mirror', active: activeModule === 'mirror' },
+          { id: 'tailor', label: '2. Tailor', active: activeModule === 'tailor', disabled: !scores },
+          { id: 'playground', label: '3. Bridge', active: activeModule === 'playground', disabled: !scores },
+        ].map((step) => (
+          <button
+            key={step.id}
+            onClick={() => !step.disabled && setActiveModule(step.id as ModuleId)}
+            disabled={step.disabled}
+            className={`text-[10px] uppercase tracking-[0.15em] font-bold transition-all px-3.5 py-1.5 rounded-full cursor-pointer ${
+              step.active
+                ? 'text-text-primary bg-bg-surface border border-border-secondary'
+                : step.disabled
+                ? 'text-text-muted-darker cursor-not-allowed opacity-50'
+                : 'text-text-muted hover:text-text-primary'
+            }`}
+          >
+            {step.label}
+          </button>
+        ))}
+      </div>
 
       {/* Hero / Information Bar (Only on Mirror) */}
       {activeModule === 'mirror' && (
@@ -382,8 +414,8 @@ export default function App() {
       </main>
 
       {/* Footer Branding */}
-      <footer className="h-10 border-t border-border-primary px-6 flex items-center justify-between text-[9px] uppercase tracking-[0.3em] font-bold text-text-muted-darker bg-bg-primary transition-colors duration-300">
-        <div className="flex gap-4">
+      <footer className="h-auto md:h-10 border-t border-border-primary px-6 py-4 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 text-[9px] uppercase tracking-[0.3em] font-bold text-text-muted-darker bg-bg-primary transition-colors duration-300">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
           <a
             href="https://www.linkedin.com/in/tyler-j-stahl"
             target="_blank"
@@ -391,8 +423,7 @@ export default function App() {
             className="hover:text-text-primary transition-colors"
           >
             Tyler J. Stahl
-          </a>
-          <span className="text-border-primary">/</span>
+          </a>          <span className="text-border-primary">/</span>
           <span>Cognitive Bridge v1.0.4-BETA</span>
           <span className="text-border-primary">/</span>
           <button
@@ -402,7 +433,7 @@ export default function App() {
             Leave Feedback
           </button>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
           <span className="text-orange-500/50">Model: Gemini 3.1 Pro // Flash</span>
           <span className="text-border-primary">/</span>
           <span>Procedural Skills Engine</span>
