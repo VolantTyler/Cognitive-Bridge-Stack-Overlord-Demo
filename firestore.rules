@@ -7,6 +7,19 @@ service cloud.firestore {
                     && request.resource.data.message is string;
       allow read, update, delete: if false;
     }
+
+    // Allow public writes to token_usage collection for user/guest telemetry
+    match /token_usage/{document} {
+      allow create: if (request.resource.data.userId == 'guest' || (request.auth != null && request.resource.data.userId == request.auth.uid))
+                    && request.resource.data.promptTokens is number
+                    && request.resource.data.completionTokens is number
+                    && request.resource.data.totalTokens is number
+                    && request.resource.data.model is string
+                    && request.resource.data.feature is string
+                    && request.resource.data.timestamp is timestamp;
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow update, delete: if false;
+    }
     // ===============================================================
     // Assumed Data Model
     // ===============================================================
