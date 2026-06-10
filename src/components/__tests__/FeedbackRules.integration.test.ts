@@ -1,6 +1,8 @@
 import { db } from '../../services/firebase';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { expect, test, describe } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
 describe('Firestore Security Rules Integration (Live Database)', () => {
   test('writing to a restricted collection fails', async () => {
@@ -34,5 +36,37 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     await expect(
       getDocs(feedbackRef)
     ).rejects.toThrow(/insufficient permissions|permission-denied/i);
+  });
+
+  test('writing to feedback with valid schema succeeds', async () => {
+    const feedbackRef = collection(db, 'feedback');
+
+    const docRef = await addDoc(feedbackRef, {
+      name: 'Valid integration test user',
+      email: 'valid-test@example.com',
+      message: 'Integration test message',
+      createdAt: serverTimestamp(),
+    });
+    expect(docRef.id).toBeDefined();
+
+    // Record the document ID for automated cleanup in global teardown
+    const tempFilePath = path.resolve(process.cwd(), '.tmp-test-docs.json');
+    let docIds: string[] = [];
+    if (fs.existsSync(tempFilePath)) {
+      try {
+        const fileContent = fs.readFileSync(tempFilePath, 'utf8').trim();
+        if (fileContent) {
+          docIds = JSON.parse(fileContent);
+        }
+      } catch (err) {
+        console.error('Failed to read temporary test documents file:', err);
+      }
+    }
+    docIds.push(docRef.id);
+    try {
+      fs.writeFileSync(tempFilePath, JSON.stringify(docIds, null, 2));
+    } catch (err) {
+      console.error('Failed to write temporary test documents file:', err);
+    }
   });
 });
