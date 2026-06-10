@@ -90,6 +90,8 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     await expect(
       getDocs(tokenUsageRef)
     ).rejects.toThrow(/insufficient permissions|permission-denied/i);
+  });
+
   test('writing to feedback with valid schema succeeds', async () => {
     const feedbackRef = collection(db, 'feedback');
 

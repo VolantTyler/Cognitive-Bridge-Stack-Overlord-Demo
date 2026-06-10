@@ -73,11 +73,13 @@ CRITICAL INSTRUCTIONS:
 - Evaluate: Openness, Conscientiousness, Extroversion, Agreeableness, Neuroticism.
 - Keep the conversation engaging and psychological.
 - Every few messages, internalize the scores.
-- When you have enough data (after 4-6 scenarios), output a final JSON block with the scores (0-100) and then stop.
+- You must ask exactly 5 scenarios/questions in total. The first question was already presented in the initial welcome message as Question 1/5. You must ask 4 more scenarios.
+- For each scenario you ask, you must append the question number in parentheses to the end of the question (e.g., "(Question 2/5)", "(Question 3/5)", "(Question 4/5)", "(Question 5/5)").
+- After the user responds to the 5th scenario/question (Question 5/5), calculate the final scores and output the JSON_SCORES block. Do not ask any more questions.
 - ALWAYS break up your comments and the next scenario/stress test: add a blank line and the prefix "Next question: " before the scenario. For example:
   "Truth as a cold, hard constant. You seem to view social harmony as a secondary concern, perhaps even a distraction from objective reality.
 
-  Next question: Let’s change the setting. You have spent months..."
+  Next question: Let’s change the setting. You have spent months... (Question 2/5)"
 
 Format for final output:
 JSON_SCORES:
@@ -97,6 +99,10 @@ export const INITIAL_OCEAN: OceanScores = {
   agreeableness: 50,
   neuroticism: 50,
 };
+
+export const INITIAL_MIRROR_MESSAGE = `Welcome to the Mirror. I am here to explore the architecture of your mind. There are no wrong personality traits--just different strengths when aligned.
+
+Let's begin with a scenario. You are 10 minutes away from a critical project demo when you discover a significant bug. Do you apply a quick, messy 'dirty hack' to fix it for the demo, or do you cancel the presentation to resolve it properly? (Question 1/5)`;
 
 export function generateAlignmentPrompt(scores: OceanScores): string {
   const directives: string[] = [];

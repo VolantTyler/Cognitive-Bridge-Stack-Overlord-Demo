@@ -26,6 +26,32 @@
 
   --bg-modal-aligned: #1a2e1a;
   --bg-modal-unaligned: #2e1a1a;
+
+  /* Custom Accent Colors */
+  --accent-orange: #fb923c;
+  --accent-orange-hover: #fdba74;
+  --accent-yellow: #facc15;
+  --accent-yellow-hover: #fde047;
+  --accent-purple: #c084fc;
+  --accent-purple-hover: #d8b4fe;
+  --accent-blue: #60a5fa;
+  --accent-blue-hover: #93c5fd;
+  --accent-green: #4ade80;
+  --accent-green-hover: #86efac;
+  --accent-red: #f87171;
+  --accent-red-hover: #fca5a5;
+
+  /* Trait-specific Backgrounds (dark mode translucent) */
+  --bg-openness: rgba(88, 28, 135, 0.2);
+  --bg-openness-shaded: rgba(88, 28, 135, 0.4);
+  --bg-conscientiousness: rgba(30, 58, 138, 0.2);
+  --bg-conscientiousness-shaded: rgba(30, 58, 138, 0.4);
+  --bg-extroversion: rgba(113, 63, 18, 0.2);
+  --bg-extroversion-shaded: rgba(113, 63, 18, 0.4);
+  --bg-agreeableness: rgba(20, 83, 45, 0.2);
+  --bg-agreeableness-shaded: rgba(20, 83, 45, 0.4);
+  --bg-neuroticism: rgba(127, 29, 29, 0.2);
+  --bg-neuroticism-shaded: rgba(127, 29, 29, 0.4);
 }
 
 :root.light {
@@ -54,6 +80,32 @@
 
   --bg-modal-aligned: #e8f5e9;
   --bg-modal-unaligned: #ffebee;
+
+  /* Custom Accent Colors for high contrast in light mode */
+  --accent-orange: #c2410c; /* orange-700 */
+  --accent-orange-hover: #9a3412; /* orange-800 */
+  --accent-yellow: #a16207; /* yellow-700 */
+  --accent-yellow-hover: #854d0e; /* yellow-800 */
+  --accent-purple: #7e22ce; /* purple-700 */
+  --accent-purple-hover: #6b21a8; /* purple-800 */
+  --accent-blue: #1d4ed8; /* blue-700 */
+  --accent-blue-hover: #1e40af; /* blue-800 */
+  --accent-green: #15803d; /* green-700 */
+  --accent-green-hover: #166534; /* green-800 */
+  --accent-red: #b91c1c; /* red-700 */
+  --accent-red-hover: #991b1b; /* red-800 */
+
+  /* Trait-specific Backgrounds (light mode translucent) */
+  --bg-openness: rgba(147, 51, 234, 0.08);
+  --bg-openness-shaded: rgba(147, 51, 234, 0.16);
+  --bg-conscientiousness: rgba(37, 99, 235, 0.08);
+  --bg-conscientiousness-shaded: rgba(37, 99, 235, 0.16);
+  --bg-extroversion: rgba(202, 138, 4, 0.08);
+  --bg-extroversion-shaded: rgba(202, 138, 4, 0.16);
+  --bg-agreeableness: rgba(22, 163, 74, 0.08);
+  --bg-agreeableness-shaded: rgba(22, 163, 74, 0.16);
+  --bg-neuroticism: rgba(220, 38, 38, 0.08);
+  --bg-neuroticism-shaded: rgba(220, 38, 38, 0.16);
 }
 
 @theme {
@@ -80,6 +132,31 @@
 
   --color-bg-modal-aligned: var(--bg-modal-aligned);
   --color-bg-modal-unaligned: var(--bg-modal-unaligned);
+
+  /* Mapping custom accent and trait colors */
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-orange-hover: var(--accent-orange-hover);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-yellow-hover: var(--accent-yellow-hover);
+  --color-accent-purple: var(--accent-purple);
+  --color-accent-purple-hover: var(--accent-purple-hover);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-blue-hover: var(--accent-blue-hover);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-hover: var(--accent-green-hover);
+  --color-accent-red: var(--accent-red);
+  --color-accent-red-hover: var(--accent-red-hover);
+
+  --color-trait-openness-bg: var(--bg-openness);
+  --color-trait-openness-bg-shaded: var(--bg-openness-shaded);
+  --color-trait-conscientiousness-bg: var(--bg-conscientiousness);
+  --color-trait-conscientiousness-bg-shaded: var(--bg-conscientiousness-shaded);
+  --color-trait-extroversion-bg: var(--bg-extroversion);
+  --color-trait-extroversion-bg-shaded: var(--bg-extroversion-shaded);
+  --color-trait-agreeableness-bg: var(--bg-agreeableness);
+  --color-trait-agreeableness-bg-shaded: var(--bg-agreeableness-shaded);
+  --color-trait-neuroticism-bg: var(--bg-neuroticism);
+  --color-trait-neuroticism-bg-shaded: var(--bg-neuroticism-shaded);
 }
 
 @layer base {
