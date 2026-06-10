@@ -89,7 +89,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
     let modelResponse = '';
     setMessages(prev => [...prev, { role: 'model', content: '' }]);
 
-    const stream = chatWithGeminiStream([...messages, userMessage], MIRROR_SYSTEM_PROMPT);
+    const stream = chatWithGeminiStream([...messages, userMessage], MIRROR_SYSTEM_PROMPT, undefined, 'mirror');
 
     for await (const chunk of stream) {
       modelResponse += chunk;

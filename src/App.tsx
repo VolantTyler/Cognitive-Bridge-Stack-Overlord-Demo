@@ -13,7 +13,7 @@ import Tailor from './components/Tailor';
 import Playground from './components/Playground';
 import FeedbackModal from './components/FeedbackModal';
 
-import { auth, googleProvider, db } from './services/firebase';
+import { auth, googleProvider, db, logAnalyticsEvent } from './services/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -60,7 +60,10 @@ export default function App() {
   useEffect(() => { scoresRef.current = scores; }, [scores]);
   useEffect(() => { mirrorMessagesRef.current = mirrorMessages; }, [mirrorMessages]);
   useEffect(() => { playgroundMessagesRef.current = playgroundMessages; }, [playgroundMessages]);
-  useEffect(() => { activeModuleRef.current = activeModule; }, [activeModule]);
+  useEffect(() => { 
+    activeModuleRef.current = activeModule;
+    logAnalyticsEvent('module_viewed', { module_id: activeModule });
+  }, [activeModule]);
 
   // Firestore save wrapper (stream-settlement optimized)
   const saveToCloud = async (
@@ -94,6 +97,7 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        logAnalyticsEvent('auth_state_changed', { status: 'logged_in' });
         
         // Check for existing cloud profile
         const userDocRef = doc(db, 'users', currentUser.uid);
@@ -125,6 +129,7 @@ export default function App() {
         }
       } else {
         setUser(null);
+        logAnalyticsEvent('auth_state_changed', { status: 'logged_out' });
         // Clean slate on disconnect / local guest mode
         setScores(null);
         setMirrorMessages([
