@@ -1,11 +1,17 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cognitive Bridge</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script>
+      (function() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+          document.documentElement.classList.remove('light');
+        }
+      })();
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         const link = document.querySelector("link[rel~='icon']");
         if (link) {

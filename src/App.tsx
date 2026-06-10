@@ -7,7 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon } from 'lucide-react';
 import { ModuleId, OceanScores, Message, ComparisonMessage } from './types';
-import { INITIAL_OCEAN } from './constants';
+import { INITIAL_OCEAN, INITIAL_MIRROR_MESSAGE } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
@@ -22,14 +22,14 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
   const [scores, setScores] = useState<OceanScores | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  
+
   // Theme state initialized from localStorage
   const [isLightMode, setIsLightMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
-      return saved === 'light';
+      return saved !== 'dark';
     }
-    return false;
+    return true;
   });
 
   // Synchronize class list on document element
@@ -47,7 +47,7 @@ export default function App() {
   };
 
   const [mirrorMessages, setMirrorMessages] = useState<Message[]>([
-    { role: 'model', content: "Welcome to the Mirror. I am here to explore the architecture of your mind. Let's begin with a scenario. You are 10 minutes away from a critical project demo when you discover a significant bug. Do you apply a quick, messy 'dirty hack' to fix it for the demo, or do you cancel the presentation to resolve it properly?" }
+    { role: 'model', content: INITIAL_MIRROR_MESSAGE }
   ]);
   const [playgroundMessages, setPlaygroundMessages] = useState<ComparisonMessage[]>([]);
 
@@ -98,7 +98,6 @@ export default function App() {
       if (currentUser) {
         setUser(currentUser);
         logAnalyticsEvent('auth_state_changed', { status: 'logged_in' });
-        
         // Check for existing cloud profile
         const userDocRef = doc(db, 'users', currentUser.uid);
         try {
@@ -133,7 +132,7 @@ export default function App() {
         // Clean slate on disconnect / local guest mode
         setScores(null);
         setMirrorMessages([
-          { role: 'model', content: "Welcome to the Mirror. I am here to explore the architecture of your mind. Let's begin with a scenario. You are 10 minutes away from a critical project demo when you discover a significant bug. Do you apply a quick, messy 'dirty hack' to fix it for the demo, or do you cancel the presentation to resolve it properly?" }
+          { role: 'model', content: INITIAL_MIRROR_MESSAGE }
         ]);
         setPlaygroundMessages([]);
         setActiveModule('mirror');
@@ -219,7 +218,7 @@ export default function App() {
                 <span className="text-[10px] font-bold text-text-primary truncate max-w-[100px]" title={user.displayName || user.email || ''}>
                   {user.displayName || user.email?.split('@')[0]}
                 </span>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="text-[9px] text-text-muted hover:text-red-400 transition-colors uppercase font-bold tracking-wider cursor-pointer"
                 >
@@ -259,13 +258,13 @@ export default function App() {
             aria-label="Toggle theme"
             id="theme-toggle-btn"
           >
-            <svg 
+            <svg
               className="w-5 h-5 transition-transform duration-500 group-hover:rotate-12 text-text-muted hover:text-text-primary"
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
               strokeLinejoin="round"
             >
               {/* Sun rays on the left side */}
@@ -274,10 +273,10 @@ export default function App() {
               <path d="M2 12h2" />
               <path d="M4.93 19.07l1.41-1.41" />
               <path d="M12 20v2" />
-              
+
               {/* Sun left half (filled) */}
               <path d="M12 5 A 7 7 0 0 0 12 19 Z" fill="currentColor" />
-              
+
               {/* Moon right crescent (filled) */}
               <path d="M12 5 A 7 7 0 0 1 12 19 A 5 5 0 0 0 12 5 Z" fill="currentColor" />
             </svg>
@@ -344,8 +343,8 @@ export default function App() {
               className="flex-1 flex flex-col"
             >
               <div className="mb-8">
-                <h1 className="text-4xl font-bold tracking-tighter mb-2">Initialize Cognitive Profile</h1>
-                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">Step into the Mirror. Through scenario-based stress tests, we will map your OCEAN personality traits to calibrate your personal AI shard.</p>
+                <h1 className="text-4xl font-bold tracking-tighter mb-2">Make Your AI Fit You</h1>
+                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">You get along with certain people better than others. It's the same with your AI assistants. Answer a few questions and we'll map your OCEAN personality traits to make your AI fit YOU. (Or, pick one of the examples below to skip ahead!)</p>
               </div>
               <div className="flex-1 min-h-[500px]">
                 <Mirror
@@ -371,12 +370,12 @@ export default function App() {
                 <span className="text-text-muted-dark">Bridge Active</span>
               </div>
               <div className="flex-1">
-                <Tailor 
-                  scores={scores} 
+                <Tailor
+                  scores={scores}
                   onNext={() => {
                     setActiveModule('playground');
                     saveToCloud(scores, mirrorMessages, playgroundMessages, 'playground');
-                  }} 
+                  }}
                 />
               </div>
             </motion.div>
@@ -417,8 +416,14 @@ export default function App() {
       {/* Footer Branding */}
       <footer className="h-auto md:h-10 border-t border-border-primary px-6 py-4 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 text-[9px] uppercase tracking-[0.3em] font-bold text-text-muted-darker bg-bg-primary transition-colors duration-300">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
-          <span>Tyler J. Stahl</span>
-          <span className="text-border-primary">/</span>
+          <a
+            href="https://www.linkedin.com/in/tyler-j-stahl"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-text-primary transition-colors"
+          >
+            Tyler J. Stahl
+          </a>          <span className="text-border-primary">/</span>
           <span>Cognitive Bridge v1.0.4-BETA</span>
           <span className="text-border-primary">/</span>
           <button
