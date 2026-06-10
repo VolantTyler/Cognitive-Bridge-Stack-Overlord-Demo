@@ -15,11 +15,11 @@ interface TailorProps {
 }
 
 const TRAIT_CONFIG = {
-  openness: { label: 'Openness', icon: SparklesIcon, color: 'text-purple-400', bgBar: 'bg-purple-400', bgShaded: 'bg-purple-900/40', bg: 'bg-purple-900/20' },
-  conscientiousness: { label: 'Conscientiousness', icon: Activity, color: 'text-blue-400', bgBar: 'bg-blue-400', bgShaded: 'bg-blue-900/40', bg: 'bg-blue-900/20' },
-  extroversion: { label: 'Extroversion', icon: Users, color: 'text-yellow-400', bgBar: 'bg-yellow-400', bgShaded: 'bg-yellow-900/40', bg: 'bg-yellow-900/20' },
-  agreeableness: { label: 'Agreeableness', icon: Heart, color: 'text-green-400', bgBar: 'bg-green-400', bgShaded: 'bg-green-900/40', bg: 'bg-green-900/20' },
-  neuroticism: { label: 'Neuroticism', icon: ShieldAlert, color: 'text-red-400', bgBar: 'bg-red-400', bgShaded: 'bg-red-900/40', bg: 'bg-red-900/20' },
+  openness: { label: 'Openness', icon: SparklesIcon, color: 'text-accent-purple', bgBar: 'bg-accent-purple', bgShaded: 'bg-trait-openness-bg-shaded', bg: 'bg-trait-openness-bg' },
+  conscientiousness: { label: 'Conscientiousness', icon: Activity, color: 'text-accent-blue', bgBar: 'bg-accent-blue', bgShaded: 'bg-trait-conscientiousness-bg-shaded', bg: 'bg-trait-conscientiousness-bg' },
+  extroversion: { label: 'Extroversion', icon: Users, color: 'text-accent-yellow', bgBar: 'bg-accent-yellow', bgShaded: 'bg-trait-extroversion-bg-shaded', bg: 'bg-trait-extroversion-bg' },
+  agreeableness: { label: 'Agreeableness', icon: Heart, color: 'text-accent-green', bgBar: 'bg-accent-green', bgShaded: 'bg-trait-agreeableness-bg-shaded', bg: 'bg-trait-agreeableness-bg' },
+  neuroticism: { label: 'Neuroticism', icon: ShieldAlert, color: 'text-accent-red', bgBar: 'bg-accent-red', bgShaded: 'bg-trait-neuroticism-bg-shaded', bg: 'bg-trait-neuroticism-bg' },
 };
 
 function SparklesIcon(props: any) {

@@ -20,7 +20,7 @@ interface MirrorProps {
 function formatMirrorContent(content: string): string {
   // Remove JSON_SCORES part first
   let text = content.split('JSON_SCORES:')[0];
-  
+
   // If "Next question:" is already in the text, make sure it has a newline before it
   if (text.includes('Next question:')) {
     text = text.replace(/([^\n])\s*Next question:/g, '$1\n\nNext question:');
@@ -133,14 +133,14 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
             <p className="text-xs text-text-muted uppercase tracking-widest">Psychometric Diagnostic</p>
           </div>
         </div>
-        
+
         <div className="flex flex-col items-end gap-1 min-w-[120px]">
           <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-text-muted-dark">
             <ListTodo className="w-3 h-3" />
             <span>Alignment {Math.min(scenarioCount, maxScenarios)} / {maxScenarios}</span>
           </div>
           <div className="w-full h-1.5 bg-bg-tertiary border border-border-primary/20 rounded-full overflow-hidden shadow-inner">
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
@@ -149,7 +149,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
         </div>
       </div>
 
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth pt-6 custom-scrollbar"
       >
@@ -162,16 +162,14 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div className={`max-w-[80%] flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white ${
-                  m.role === 'user' ? 'bg-bg-chat-user' : 'bg-bg-surface border border-border-primary'
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white ${m.role === 'user' ? 'bg-bg-chat-user' : 'bg-bg-surface border border-border-primary'
+                  }`}>
                   {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                  m.role === 'user' 
-                    ? 'bg-bg-chat-user text-white rounded-tr-none' 
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${m.role === 'user'
+                    ? 'bg-bg-chat-user text-white rounded-tr-none'
                     : 'bg-bg-chat-model text-text-chat-model rounded-tl-none border border-border-chat-model'
-                }`}>
+                  }`}>
                   {m.role === 'user' ? m.content : formatMirrorContent(m.content)}
                   {m.role === 'model' && m.content.includes('JSON_SCORES:') && (
                     <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg flex items-center gap-3 animate-pulse">
@@ -188,7 +186,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
           <div className="flex justify-start">
             <div className="bg-bg-chat-model p-4 rounded-2xl rounded-tl-none border border-border-chat-model flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
-              <span className="text-xs text-text-muted-dark italic">Hermes is analyzing...</span>
+              <span className="text-xs text-text-muted-dark italic">Analyzing...</span>
             </div>
           </div>
         )}
@@ -204,7 +202,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
             placeholder="Respond to the scenario..."
             className="w-full bg-bg-secondary border border-border-secondary text-text-primary placeholder-text-muted-dark rounded-full py-3 px-6 pr-12 text-sm focus:outline-none focus:border-orange-500 transition-colors"
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
             className="absolute right-2 p-2 bg-orange-500 rounded-full hover:bg-orange-600 disabled:opacity-50 disabled:bg-bg-tertiary transition-all shadow-lg cursor-pointer"
@@ -215,34 +213,34 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
 
         <div className="border-t border-border-primary pt-3">
           <div className="text-[10px] uppercase font-bold tracking-widest text-text-muted-dark mb-2 flex items-center gap-1.5 justify-center">
-            <Sparkles className="w-3 h-3 text-orange-500" />
+            <Sparkles className="w-3 h-3 text-accent-orange" />
             Skip diagnostic using a pre-calibrated test profile:
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               onClick={() => onComplete({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
               disabled={isLoading}
-              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-orange-500 text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
             >
-              <div className="text-[10px] font-bold text-orange-400 uppercase tracking-wide group-hover:text-orange-300 transition-colors">High Extroversion and Neuroticism</div>
+              <div className="text-[10px] font-bold text-accent-orange uppercase tracking-wide group-hover:text-accent-orange-hover transition-colors">High Extroversion and Neuroticism</div>
               <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Dampens hyper-reactive anxiety. Provides steady, structural ground.</div>
             </button>
-            
+
             <button
               onClick={() => onComplete({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
               disabled={isLoading}
-              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-yellow-500 text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
             >
-              <div className="text-[10px] font-bold text-yellow-400 uppercase tracking-wide group-hover:text-yellow-300 transition-colors">Low Extroversion, High Neuroticism</div>
+              <div className="text-[10px] font-bold text-accent-yellow uppercase tracking-wide group-hover:text-accent-yellow-hover transition-colors">Low Extroversion, High Neuroticism</div>
               <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Enlists high-energy motivation, active encouragement & structure.</div>
             </button>
 
             <button
               onClick={() => onComplete({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
               disabled={isLoading}
-              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-purple-500 text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+              className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
             >
-              <div className="text-[10px] font-bold text-purple-400 uppercase tracking-wide group-hover:text-purple-300 transition-colors">Low Conscientiousness, High Agreeableness</div>
+              <div className="text-[10px] font-bold text-accent-purple uppercase tracking-wide group-hover:text-accent-purple-hover transition-colors">Low Conscientiousness, High Agreeableness</div>
               <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Counteracts consensus seeking. Mandates precision & clear definitions.</div>
             </button>
           </div>
