@@ -38,6 +38,60 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     ).rejects.toThrow(/insufficient permissions|permission-denied/i);
   });
 
+  test('writing valid token usage as guest succeeds', async () => {
+    const tokenUsageRef = collection(db, 'token_usage');
+    
+    const docRef = await addDoc(tokenUsageRef, {
+      userId: 'guest',
+      model: 'gemini-3.1-pro-preview',
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+      feature: 'test-suite',
+      timestamp: serverTimestamp(),
+    });
+    
+    expect(docRef.id).toBeDefined();
+  });
+
+  test('writing token usage with invalid userId as unauthenticated user fails', async () => {
+    const tokenUsageRef = collection(db, 'token_usage');
+    
+    await expect(
+      addDoc(tokenUsageRef, {
+        userId: 'some-fake-uid',
+        model: 'gemini-3.1-pro-preview',
+        promptTokens: 100,
+        completionTokens: 50,
+        totalTokens: 150,
+        feature: 'test-suite',
+        timestamp: serverTimestamp(),
+      })
+    ).rejects.toThrow(/insufficient permissions|permission-denied/i);
+  });
+
+  test('writing token usage with missing schema fields fails', async () => {
+    const tokenUsageRef = collection(db, 'token_usage');
+    
+    await expect(
+      addDoc(tokenUsageRef, {
+        userId: 'guest',
+        model: 'gemini-3.1-pro-preview',
+        // missing promptTokens, completionTokens, totalTokens
+        feature: 'test-suite',
+        timestamp: serverTimestamp(),
+      })
+    ).rejects.toThrow(/insufficient permissions|permission-denied/i);
+  });
+
+  test('reading token usage as unauthenticated user fails', async () => {
+    const tokenUsageRef = collection(db, 'token_usage');
+    
+    await expect(
+      getDocs(tokenUsageRef)
+    ).rejects.toThrow(/insufficient permissions|permission-denied/i);
+  });
+
   test('writing to feedback with valid schema succeeds', async () => {
     const feedbackRef = collection(db, 'feedback');
 

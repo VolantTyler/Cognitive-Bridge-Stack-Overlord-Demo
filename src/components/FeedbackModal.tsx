@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, CheckCircle2, AlertCircle, Loader2, Send } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, logAnalyticsEvent } from '../services/firebase';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -72,6 +72,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         message: message.trim(),
         createdAt: serverTimestamp(),
       });
+      logAnalyticsEvent('feedback_submitted');
       setStatus('success');
       // Reset form
       setName('');

@@ -4,7 +4,9 @@
  */
 
 import { GoogleGenAI } from "@google/genai";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Message } from "../types";
+import { db, auth } from "./firebase";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
@@ -226,10 +228,34 @@ export function isTransientError(error: any): boolean {
   return false;
 }
 
+export async function logTokenUsage(data: {
+  modelName: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  feature?: string;
+}) {
+  try {
+    const userId = auth.currentUser?.uid || "guest";
+    await addDoc(collection(db, "token_usage"), {
+      userId,
+      model: data.modelName,
+      promptTokens: data.promptTokens,
+      completionTokens: data.completionTokens,
+      totalTokens: data.totalTokens,
+      feature: data.feature || "unknown",
+      timestamp: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Failed to log token usage to Firestore:", error);
+  }
+}
+
 export async function chatWithGemini(
   messages: Message[],
   systemInstruction?: string,
-  modelName: string = "gemini-3-flash-preview"
+  modelName: string = "gemini-3-flash-preview",
+  feature?: string
 ): Promise<string> {
   if (activeModelsCache.length === 0) {
     refreshActiveModelsList();
@@ -251,6 +277,18 @@ export async function chatWithGemini(
             systemInstruction: systemInstruction,
           },
         });
+
+        // Extract and log token usage
+        const usage = response.usageMetadata;
+        if (usage) {
+          logTokenUsage({
+            modelName: model,
+            promptTokens: usage.promptTokenCount ?? 0,
+            completionTokens: usage.candidatesTokenCount ?? 0,
+            totalTokens: usage.totalTokenCount ?? 0,
+            feature
+          });
+        }
 
         return response.text || "";
       } catch (error) {
@@ -284,6 +322,7 @@ export async function* chatWithGeminiStream(
   messages: Message[],
   systemInstruction?: string,
   modelName: string = "gemini-3-flash-preview",
+  feature?: string,
   onFallback?: (failedModel: string, nextModel: string) => void
 ): AsyncGenerator<string, void, unknown> {
   if (activeModelsCache.length === 0) {
@@ -309,12 +348,27 @@ export async function* chatWithGeminiStream(
             },
           });
 
+          let finalUsageMetadata: any = null;
+
           for await (const chunk of stream) {
+            if (chunk.usageMetadata) {
+              finalUsageMetadata = chunk.usageMetadata;
+            }
             const text = chunk.text || "";
             if (text) {
               yield text;
               chunksYielded++;
             }
+          }
+
+          if (finalUsageMetadata) {
+            logTokenUsage({
+              modelName: model,
+              promptTokens: finalUsageMetadata.promptTokenCount ?? 0,
+              completionTokens: finalUsageMetadata.candidatesTokenCount ?? 0,
+              totalTokens: finalUsageMetadata.totalTokenCount ?? 0,
+              feature
+            });
           }
           
           return; // Successfully finished streaming

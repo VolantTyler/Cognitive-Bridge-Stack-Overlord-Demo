@@ -17,6 +17,7 @@ vi.mock('firebase/firestore', () => ({
 // Mock firebase config/db initialization
 vi.mock('../../services/firebase', () => ({
   db: 'mock-db-instance',
+  logAnalyticsEvent: vi.fn(),
 }));
 
 describe('FeedbackModal Component', () => {

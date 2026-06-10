@@ -114,6 +114,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
       [...messages, userMessage],
       MIRROR_SYSTEM_PROMPT,
       undefined,
+      'mirror',
       (failedModel, nextModel) => {
         setLoadingText('Analyzing... changing to a different model');
       }
