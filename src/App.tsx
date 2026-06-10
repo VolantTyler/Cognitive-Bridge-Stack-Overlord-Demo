@@ -308,7 +308,7 @@ export default function App() {
             >
               <div className="mb-8">
                 <h1 className="text-4xl font-bold tracking-tighter mb-2">Make Your AI Fit You</h1>
-                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">You get along with certain people better than others. It's the same with your AI assistants. Answer a few questions and we'll map your personality to make your AI fit YOU.</p>
+                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">You get along with certain people better than others. It's the same with your AI assistants. Answer a few questions and we'll map your OCEAN personality traits to make your AI fit YOU. (Or, pick one of the examples below to skip ahead!)</p>
               </div>
               <div className="flex-1 min-h-[500px]">
                 <Mirror

@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { OceanScores, SteeringDirective } from '../types';
 import { STEERING_LIBRARY, generatePortableMetadata } from '../constants';
 import { Brain, ArrowRight, Dna, Activity, Users, ShieldAlert, Heart, Copy, Check, FileCode } from 'lucide-react';
+import OceanCards from './OceanCards';
 
 interface TailorProps {
   scores: OceanScores;
@@ -15,16 +16,12 @@ interface TailorProps {
 }
 
 const TRAIT_CONFIG = {
-  openness: { label: 'Openness', icon: SparklesIcon, color: 'text-accent-purple', bgBar: 'bg-accent-purple', bgShaded: 'bg-trait-openness-bg-shaded', bg: 'bg-trait-openness-bg' },
-  conscientiousness: { label: 'Conscientiousness', icon: Activity, color: 'text-accent-blue', bgBar: 'bg-accent-blue', bgShaded: 'bg-trait-conscientiousness-bg-shaded', bg: 'bg-trait-conscientiousness-bg' },
-  extroversion: { label: 'Extroversion', icon: Users, color: 'text-accent-yellow', bgBar: 'bg-accent-yellow', bgShaded: 'bg-trait-extroversion-bg-shaded', bg: 'bg-trait-extroversion-bg' },
-  agreeableness: { label: 'Agreeableness', icon: Heart, color: 'text-accent-green', bgBar: 'bg-accent-green', bgShaded: 'bg-trait-agreeableness-bg-shaded', bg: 'bg-trait-agreeableness-bg' },
-  neuroticism: { label: 'Neuroticism', icon: ShieldAlert, color: 'text-accent-red', bgBar: 'bg-accent-red', bgShaded: 'bg-trait-neuroticism-bg-shaded', bg: 'bg-trait-neuroticism-bg' },
+  openness: { label: 'Openness', color: 'text-accent-purple' },
+  conscientiousness: { label: 'Conscientiousness', color: 'text-accent-blue' },
+  extroversion: { label: 'Extroversion', color: 'text-accent-yellow' },
+  agreeableness: { label: 'Agreeableness', color: 'text-accent-green' },
+  neuroticism: { label: 'Neuroticism', color: 'text-accent-red' },
 };
-
-function SparklesIcon(props: any) {
-  return <Dna {...props} />;
-}
 
 export default function Tailor({ scores, onNext }: TailorProps) {
   const [copied, setCopied] = useState(false);
@@ -43,42 +40,7 @@ export default function Tailor({ scores, onNext }: TailorProps) {
 
   return (
     <div className="h-full flex flex-col gap-6 overflow-hidden">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        {(Object.entries(scores) as [keyof OceanScores, number][]).map(([trait, value]) => {
-          const config = TRAIT_CONFIG[trait];
-          const Icon = config.icon;
-          return (
-            <motion.div 
-              key={trait}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-xl border border-border-primary ${config.bg} flex flex-col gap-3 relative overflow-hidden group transition-colors duration-300`}
-            >
-              {/* Shaded background based on score */}
-              <div 
-                className={`absolute left-0 top-0 bottom-0 ${config.bgShaded} opacity-20 pointer-events-none transition-all duration-700`}
-                style={{ width: `${value}%` }}
-              />
-              
-              <div className="flex items-center gap-2 relative z-10">
-                <Icon className={`w-4 h-4 ${config.color}`} />
-                <span className="text-[10px] uppercase font-bold tracking-[0.1em] text-text-muted group-hover:text-text-secondary transition-colors">{config.label}</span>
-              </div>
-              <div className="flex items-end gap-1 relative z-10">
-                <span className="text-3xl font-mono font-bold tracking-tighter">{value}</span>
-                <span className="text-[10px] text-text-muted-dark mb-1.5">/100</span>
-              </div>
-              <div className="h-2 bg-black/40 rounded-full overflow-hidden relative z-10 border border-border-primary/10">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${value}%` }}
-                  className={`h-full ${config.bgBar} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
-                />
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+      <OceanCards scores={scores} />
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
         <div className="flex flex-col gap-4 overflow-hidden">
