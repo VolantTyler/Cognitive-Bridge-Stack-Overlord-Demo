@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Sparkles, User, Shield, Info, Loader2, AlertTriangle, Zap, Split, Brain } from 'lucide-react';
+import { Send, Sparkles, User, Shield, Info, Loader2, AlertTriangle, Zap, Split, Brain, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { OceanScores, Message, ComparisonMessage } from '../types';
 import { generateAlignmentPrompt, generateInverseAlignmentPrompt } from '../constants';
 import { chatWithGeminiStream } from '../services/gemini';
@@ -23,14 +23,43 @@ export default function Playground({ scores, messages, setMessages, setScores, o
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<{ text: string, explanation: string, type: string } | null>(null);
+  const [expandedIndices, setExpandedIndices] = useState<Record<number, boolean>>({});
+  const initializedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!initializedRef.current && messages.length > 0) {
+      setExpandedIndices({ [messages.length - 1]: true });
+      initializedRef.current = true;
+    }
+  }, [messages]);
+
+  const handleDelete = (indexToDelete: number) => {
+    const updated = messages.filter((_, idx) => idx !== indexToDelete);
+    setMessages(updated);
+    if (onSaveSession) {
+      onSaveSession(updated);
+    }
+    setExpandedIndices(prev => {
+      const next: Record<number, boolean> = {};
+      Object.keys(prev).forEach(keyStr => {
+        const idx = parseInt(keyStr, 10);
+        if (idx < indexToDelete) {
+          next[idx] = prev[idx];
+        } else if (idx > indexToDelete) {
+          next[idx - 1] = prev[idx];
+        }
+      });
+      return next;
+    });
+  };
   
   const alignedSystemPrompt = generateAlignmentPrompt(scores);
   const unalignedSystemPrompt = generateInverseAlignmentPrompt(scores);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = 0;
     }
   }, [messages]);
 
@@ -45,6 +74,8 @@ export default function Playground({ scores, messages, setMessages, setScores, o
       loading: true
     };
     
+    const newIndex = messages.length;
+    setExpandedIndices({ [newIndex]: true });
     setMessages(prev => [...prev, newMessage]);
     const currentMessageIndex = messages.length;
     setInput('');
@@ -109,6 +140,8 @@ export default function Playground({ scores, messages, setMessages, setScores, o
       loading: true
     };
 
+    const newIndex = messages.length;
+    setExpandedIndices({ [newIndex]: true });
     setMessages(prev => [...prev, newMessage]);
     const currentMessageIndex = messages.length;
     setIsLoading(true);
@@ -254,47 +287,8 @@ export default function Playground({ scores, messages, setMessages, setScores, o
             </div>
           </div>
 
-          <div 
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto p-0 flex flex-col divide-y divide-border-primary custom-scrollbar transition-colors duration-300"
-          >
-            {messages.length === 0 && (
-              <div className="p-20 flex flex-col items-center justify-center text-center opacity-30">
-                <Sparkles className="w-12 h-12 mb-4 text-orange-500" />
-                <h4 className="text-lg font-medium">Initialize Comparative Analysis</h4>
-                <p className="text-sm max-w-sm mt-2 font-mono">Parallel streaming enabled. Witness the divergence between Aligned and Unaligned logic.</p>
-              </div>
-            )}
-
-            {messages.map((m, i) => (
-              <div key={i} className="flex flex-col">
-                <div className="bg-bg-tertiary p-4 flex justify-center border-b border-border-primary transition-colors duration-300">
-                   <div className="flex items-center gap-3 bg-blue-600/10 px-4 py-2 rounded-full border border-blue-500/20 max-w-[90%] overflow-hidden">
-                      <User className="w-3 h-3 text-blue-400 shrink-0" />
-                      <span className="text-xs font-medium text-blue-200 italic truncate">{m.user}</span>
-                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 divide-x divide-border-primary min-h-[100px] transition-colors duration-300">
-                  <div className="p-4 sm:p-6 text-sm text-text-primary leading-relaxed whitespace-pre-wrap bg-green-500/5">
-                     {m.aligned ? renderContent(m.aligned, 'aligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
-                  </div>
-                  <div className="p-4 sm:p-6 text-sm text-text-muted leading-relaxed whitespace-pre-wrap border-l border-red-500/10 bg-red-500/5">
-                     {m.unaligned ? renderContent(m.unaligned, 'unaligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="p-4 flex justify-center gap-2 bg-bg-secondary border-t border-border-primary transition-colors duration-300">
-                 <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                 <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted-dark">Generating Cognitive Delta...</span>
-              </div>
-            )}
-          </div>
-
-          <div className="p-4 bg-bg-surface border-t border-border-primary transition-colors duration-300">
+          {/* Anchored Input Container */}
+          <div className="p-4 bg-bg-surface border-b border-border-primary transition-colors duration-300">
             <div className="relative">
               <textarea
                 value={input}
@@ -311,11 +305,108 @@ export default function Playground({ scores, messages, setMessages, setScores, o
               <button 
                 onClick={handleSend}
                 disabled={isLoading || !input.trim()}
-                className="absolute right-3 bottom-3 p-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-all rounded-lg shadow-lg shadow-orange-600/20"
+                className="absolute right-3 bottom-3 p-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-all rounded-lg shadow-lg shadow-orange-600/20 cursor-pointer"
               >
                 <Send className="w-4 h-4 text-white" />
               </button>
             </div>
+          </div>
+
+          <div 
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto p-0 flex flex-col divide-y divide-border-primary custom-scrollbar transition-colors duration-300"
+          >
+            {isLoading && (
+              <div className="p-3 flex justify-center gap-2 bg-bg-secondary border-b border-border-primary transition-colors duration-300 shrink-0">
+                 <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                 <span className="text-[10px] uppercase font-bold tracking-widest text-text-muted-dark">Generating Cognitive Delta...</span>
+              </div>
+            )}
+
+            {messages.length === 0 && !isLoading && (
+              <div className="p-20 flex flex-col items-center justify-center text-center opacity-30">
+                <Sparkles className="w-12 h-12 mb-4 text-orange-500" />
+                <h4 className="text-lg font-medium">Initialize Comparative Analysis</h4>
+                <p className="text-sm max-w-sm mt-2 font-mono">Parallel streaming enabled. Witness the divergence between Aligned and Unaligned logic.</p>
+              </div>
+            )}
+
+            {[...messages].reverse().map((m, idx) => {
+              const origIdx = messages.length - 1 - idx;
+              const isExpanded = expandedIndices[origIdx];
+
+              return (
+                <div key={origIdx} className="flex flex-col">
+                  {isExpanded ? (
+                    <>
+                      <div className="bg-bg-tertiary p-4 flex justify-between items-center border-b border-border-primary transition-colors duration-300">
+                        <div className="flex-1 flex justify-center">
+                          <div className="flex items-center gap-3 bg-bg-playground-user-bubble px-4 py-2 rounded-full border border-border-playground-user-bubble max-w-[90%] overflow-hidden">
+                            <User className="w-3 h-3 text-icon-playground-user-bubble shrink-0" />
+                            <span className="text-xs font-medium text-text-playground-user-bubble italic truncate">{m.user}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => handleDelete(origIdx)}
+                            className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                            title="Delete conversation"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setExpandedIndices(prev => ({ ...prev, [origIdx]: false }))}
+                            className="p-1.5 hover:bg-bg-surface text-text-muted hover:text-text-primary rounded-lg transition-colors cursor-pointer"
+                            title="Collapse conversation"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 divide-x divide-border-primary min-h-[100px] transition-colors duration-300">
+                        <div className="p-4 sm:p-6 text-sm text-text-primary leading-relaxed whitespace-pre-wrap bg-green-500/5">
+                           {m.aligned ? renderContent(m.aligned, 'aligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
+                        </div>
+                        <div className="p-4 sm:p-6 text-sm text-text-muted leading-relaxed whitespace-pre-wrap border-l border-red-500/10 bg-red-500/5">
+                           {m.unaligned ? renderContent(m.unaligned, 'unaligned') : (m.loading && <div className="space-y-2"><div className="h-3 w-3/4 bg-border-primary animate-pulse rounded" /><div className="h-3 w-1/2 bg-border-primary animate-pulse rounded" /></div>)}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="bg-bg-tertiary/60 hover:bg-bg-tertiary p-3 flex justify-between items-center transition-colors duration-200">
+                      <div
+                        onClick={() => setExpandedIndices(prev => ({ ...prev, [origIdx]: true }))}
+                        className="flex-1 flex items-center gap-3 cursor-pointer select-none overflow-hidden mr-4"
+                      >
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 border border-blue-500/20 shrink-0">
+                          Prompt
+                        </span>
+                        <span className="text-xs text-text-secondary truncate font-medium max-w-[80%]">
+                          {m.user}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleDelete(origIdx)}
+                          className="p-1.5 hover:bg-red-500/10 text-text-muted hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+                          title="Delete conversation"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setExpandedIndices(prev => ({ ...prev, [origIdx]: true }))}
+                          className="p-1.5 hover:bg-bg-surface text-text-muted hover:text-text-primary rounded-lg transition-colors cursor-pointer"
+                          title="Expand conversation"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -24,6 +24,12 @@
   --border-chat-model: #444444;
   --text-chat-model: #e5e7eb;
 
+  /* Playground User Bubble (Blue) */
+  --bg-playground-user-bubble: rgba(37, 99, 235, 0.1);
+  --border-playground-user-bubble: rgba(59, 130, 246, 0.2);
+  --text-playground-user-bubble: #bfdbfe;
+  --icon-playground-user-bubble: #60a5fa;
+
   --bg-modal-aligned: #1a2e1a;
   --bg-modal-unaligned: #2e1a1a;
 
@@ -78,6 +84,12 @@
   --border-chat-model: #ded7c8;
   --text-chat-model: #383226;
 
+  /* Playground User Bubble (Blue) - Light Mode Override */
+  --bg-playground-user-bubble: rgba(29, 78, 216, 0.1);
+  --border-playground-user-bubble: rgba(29, 78, 216, 0.2);
+  --text-playground-user-bubble: #1e3a8a;
+  --icon-playground-user-bubble: #1d4ed8;
+
   --bg-modal-aligned: #e8f5e9;
   --bg-modal-unaligned: #ffebee;
 
@@ -129,6 +141,11 @@
   --color-bg-chat-model: var(--bg-chat-model);
   --color-border-chat-model: var(--border-chat-model);
   --color-text-chat-model: var(--text-chat-model);
+
+  --color-bg-playground-user-bubble: var(--bg-playground-user-bubble);
+  --color-border-playground-user-bubble: var(--border-playground-user-bubble);
+  --color-text-playground-user-bubble: var(--text-playground-user-bubble);
+  --color-icon-playground-user-bubble: var(--icon-playground-user-bubble);
 
   --color-bg-modal-aligned: var(--bg-modal-aligned);
   --color-bg-modal-unaligned: var(--bg-modal-unaligned);
