@@ -2,18 +2,94 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Cognitive Bridge
 
-This contains everything you need to run your app locally.
-https://ai.studio/apps/10d489d8-3b32-488a-9698-e415f2608028
+Cognitive Bridge is a web-based psychometric alignment application designed to calibrate and align an AI assistant's personality and communication style to match a user's unique cognitive profile.
 
-## Run Locally
+## What This Project Is For
 
-**Prerequisites:**  Node.js
+The application allows users to explore and interface with aligned artificial intelligence through three sequential modules:
+1. **The Mirror (Psychometric Diagnostic)**: Engages the user in scenario-based stress tests to assess and map their Big Five (OCEAN) personality traits: Openness, Conscientiousness, Extroversion, Agreeableness, and Neuroticism.
+2. **The Tailor (Synthesis)**: Synthesizes a customized cognitive profile from the diagnostic results and displays detailed mappings of how the user's personality traits adapt the AI's instruction set.
+3. **The Bridge (Interfacing)**: Provides a chat playground allowing the user to communicate with both the aligned model (calibrated to their profile) and an unaligned model side-by-side to experience the difference.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Getting Started & Installation
+
+### Prerequisites
+- **Node.js** (v18.x or higher recommended)
+- **NPM** (comes with Node.js)
+- A **Google Gemini API Key** (for model inference)
+- A **Firebase Project** (for authentication, Firestore database, and hosting)
+
+### Installation Steps
+
+1. **Clone the repository and install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Configure Environment Variables:**
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Open `.env.local` and configure your API keys and Firebase project parameters:
+   ```env
+   GEMINI_API_KEY="your-gemini-api-key"
+   APP_URL="http://localhost:3000"
+   
+   VITE_FIREBASE_API_KEY="your-firebase-api-key"
+   VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"
+   VITE_FIREBASE_PROJECT_ID="your-project-id"
+   VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
+   VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+   VITE_FIREBASE_APP_ID="your-app-id"
+   VITE_FIREBASE_FIRESTORE_DATABASE_ID="your-firestore-db-id"
+   ```
+
+3. **Run the Application Locally:**
+   ```bash
+   npm run dev
+   ```
+   The application will start running on your local server (usually `http://localhost:3000` or `http://localhost:5173`).
+
+---
+
+## Data & Submission Locations
+
+This project integrates with **Cloud Firestore** to persist user session data and system feedback.
+
+### 1. Mirror Interview Responses & Cognitive Profiles
+When a user is logged in (using Google Authentication / Cloud Sync mode), their progress and responses are continuously saved:
+- **Location**: Firestore Database -> **`users`** collection
+- **Path**: `/users/{userId}` (where `{userId}` is the user's Firebase Auth UID)
+- **Stored Fields**:
+  - `scores`: The calibrated Big Five (OCEAN) personality scores map:
+    - `openness`, `conscientiousness`, `extroversion`, `agreeableness`, `neuroticism` (values 0-100)
+  - `mirrorMessages`: An array of messages from the psychometric diagnostic chat history (Mirror module), containing:
+    - `role`: `'user'` or `'model'`
+    - `content`: The message text (user responses and scenario questions)
+  - `playgroundMessages`: Message history from the playground module.
+  - `activeModule`: Current progress status (`mirror` | `tailor` | `playground`).
+  - `updatedAt`: Timestamp of the last save.
+
+*Note: If the user interacts as a **Local Guest** (not logged in), all session data is stored in the browser's local state and will not be sent to Cloud Firestore.*
+
+### 2. User Feedback Submissions
+When a user clicks "Leave Feedback" in the footer and submits the feedback form:
+- **Location**: Firestore Database -> **`feedback`** collection
+- **Path**: `/feedback/{documentId}` (auto-generated document ID)
+- **Stored Fields**:
+  - `name`: Name of the sender (defaults to `'Anonymous'` if left blank)
+  - `email`: Sender's email address
+  - `message`: Sender's feedback message
+  - `createdAt`: Server-side Firestore timestamp of when it was submitted
+- **Permissions & Security**: As per `firestore.rules`, the `feedback` collection is write-only for the public. Only authenticated Firestore administrators can view or manage these documents (via the Firebase Console).
+
+---
+
+## License
+
+This project is licensed under the Apache-2.0 License.
