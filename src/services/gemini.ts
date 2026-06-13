@@ -90,7 +90,8 @@ export function getDynamicModelFallbacks(requestedModel: string): string[] {
     const result = [fullName, ...filtered];
     
     const originalHasPrefix = requestedModel.startsWith('models/');
-    return result.map(name => originalHasPrefix ? name : name.replace(/^models\//, ''));
+    // Limit to at most 6 models to prevent excessive retry fallback loops
+    return result.map(name => originalHasPrefix ? name : name.replace(/^models\//, '')).slice(0, 6);
   };
 
   // If cache is empty, return static fallbacks
@@ -157,7 +158,8 @@ export function getDynamicModelFallbacks(requestedModel: string): string[] {
       return originalHasPrefix ? name : name.replace(/^models\//, '');
     });
     
-    return Array.from(new Set(finalFallbacks));
+    // Limit to at most 6 models to prevent excessive retry fallback loops
+    return Array.from(new Set(finalFallbacks)).slice(0, 6);
   } catch (err) {
     console.error("Error building dynamic fallback list, reverting to static list:", err);
     if (fullName.includes('pro')) {
@@ -184,6 +186,27 @@ export function isTransientError(error: any): boolean {
 
   const msg = String(error.message || error).toLowerCase();
   if (msg.includes('503') || msg.includes('unavailable') || msg.includes('high demand') || msg.includes('temporarily unavailable')) {
+    return true;
+  }
+  
+  return false;
+}
+
+export function isProjectWideError(error: any): boolean {
+  if (!error) return false;
+  
+  const status = error.status || error.code || (error.error && (error.error.status || error.error.code));
+  if (status === 403) return true;
+  
+  const msg = String(error.message || (error.error && error.error.message) || error).toLowerCase();
+  if (
+    msg.includes('spending cap') ||
+    msg.includes('api key') ||
+    msg.includes('billing') ||
+    msg.includes('quota') ||
+    msg.includes('resource_exhausted') ||
+    msg.includes('credentials')
+  ) {
     return true;
   }
   
@@ -242,6 +265,35 @@ export async function chatWithGemini(
     const data = await response.json();
     if (data.error) {
       throw new Error(data.error);
+    }
+    
+        return response.text || "";
+      } catch (error) {
+        console.error(`Error on model ${model} (attempt ${attempt}):`, error);
+        
+        if (isProjectWideError(error)) {
+          console.error("Project-wide error encountered (billing/credentials/quota). Aborting model fallback.");
+          return "I encountered an error connecting to the intelligence bridge.";
+        }
+        
+        const isTransient = isTransientError(error);
+        const isLastAttemptForModel = attempt === MAX_ATTEMPTS_PER_MODEL;
+        const isLastModel = model === modelsToTry[modelsToTry.length - 1];
+        
+        if (isTransient && !isLastAttemptForModel) {
+          console.warn(`Transient error detected. Retrying ${model} in ${RETRY_DELAY_MS}ms...`);
+          await sleep(RETRY_DELAY_MS);
+          continue;
+        }
+        
+        if (isLastModel && isLastAttemptForModel) {
+          console.error("Gemini API Error (all fallbacks failed):", error);
+          return "I encountered an error connecting to the intelligence bridge.";
+        }
+        
+        console.warn(`Switching from ${model} to next fallback model...`);
+        break; // break out of the attempt loop to move to the next model
+      }
     }
     return data.text || "";
   } catch (error) {
@@ -313,6 +365,32 @@ export async function* chatWithGeminiStream(
             }
           } catch (e) {
             console.error("Failed to parse stream chunk:", e, "Chunk string:", dataStr);
+          }
+          
+          if (isProjectWideError(error)) {
+            console.error("Project-wide streaming error encountered (billing/credentials/quota). Aborting model fallback.");
+            throw error;
+          }
+          
+          const isTransient = isTransientError(error);
+          const isLastAttemptForModel = attempt === MAX_ATTEMPTS_PER_MODEL;
+          const isLastModel = model === modelsToTry[modelsToTry.length - 1];
+          
+          if (isTransient && !isLastAttemptForModel) {
+            console.warn(`Transient streaming error detected. Retrying ${model} in ${RETRY_DELAY_MS}ms...`);
+            await sleep(RETRY_DELAY_MS);
+            continue;
+          }
+          
+          if (isLastModel && isLastAttemptForModel) {
+            throw error; // Propagate to outer try-catch
+          }
+          
+          const nextModelIndex = modelsToTry.indexOf(model) + 1;
+          const nextModel = modelsToTry[nextModelIndex] || 'unknown';
+          console.warn(`Switching from ${model} to next fallback model for streaming...`);
+          if (onFallback) {
+            onFallback(model, nextModel);
           }
         }
       }
