@@ -17,6 +17,15 @@ jobs:
       - run: npm ci && npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Build Functions
+        run: cd functions && npm ci && npm run build
+      - name: Deploy Firebase Functions
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > service-account-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=service-account-key.json
+          npx firebase-tools deploy --only functions --project gen-lang-client-0374909318
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0374909318 }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

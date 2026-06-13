@@ -23,6 +23,18 @@ export const chatProxy = onRequest({ cors: true }, async (req, res) => {
     let cleanModel = modelName || "gemini-2.5-flash";
     cleanModel = cleanModel.replace(/^models\//, "");
 
+    const ALLOWED_MODELS = [
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro"
+    ];
+
+    if (!ALLOWED_MODELS.includes(cleanModel)) {
+      res.status(400).send(`Bad Request: Model '${cleanModel}' is not allowed.`);
+      return;
+    }
+
     const contents = messages.map((m: any) => ({
       role: m.role === "system" ? "user" : m.role,
       parts: [{ text: m.content }]

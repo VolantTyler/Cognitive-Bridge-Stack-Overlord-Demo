@@ -326,16 +326,19 @@ export async function* chatWithGeminiStream(
             return;
           }
 
+          let parsed: any;
           try {
-            const parsed = JSON.parse(dataStr);
-            if (parsed.error) {
-              throw new Error(parsed.error);
-            }
-            if (parsed.text) {
-              yield parsed.text;
-            }
+            parsed = JSON.parse(dataStr);
           } catch (e) {
             console.error("Failed to parse stream chunk:", e, "Chunk string:", dataStr);
+            continue;
+          }
+
+          if (parsed.error) {
+            throw new Error(parsed.error);
+          }
+          if (parsed.text) {
+            yield parsed.text;
           }
         }
       }
