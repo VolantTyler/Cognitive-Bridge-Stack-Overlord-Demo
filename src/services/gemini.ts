@@ -3,12 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GoogleGenAI } from "@google/genai";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Message } from "../types";
 import { db, auth } from "./firebase";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+function getProxyUrl(): string {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0374909318";
+  
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "0.0.0.0"
+  ) {
+    return `http://localhost:5001/${projectId}/us-central1/chatProxy`;
+  }
+  return "/api/chat";
+}
 
 // Constants for retry logic
 const MAX_ATTEMPTS_PER_MODEL = 2;
@@ -50,57 +60,9 @@ export let activeModelsCache: string[] = [];
 let isFetchingModels = false;
 
 export async function refreshActiveModelsList(apiKey?: string) {
-  if (isFetchingModels) return;
-  isFetchingModels = true;
-  try {
-    const key = apiKey || process.env.GEMINI_API_KEY || '';
-    if (!key) return;
-    const client = new GoogleGenAI({ apiKey: key });
-    const response = await client.models.list();
-    const list: string[] = [];
-    if (response) {
-      if (typeof (response as any)[Symbol.asyncIterator] === 'function') {
-        for await (const m of (response as any)) {
-          const name = m.name || '';
-          const actions = m.supportedActions || [];
-          if (name.startsWith('models/gemini-') && actions.includes('generateContent')) {
-            list.push(name);
-          }
-        }
-      } else if (Array.isArray(response)) {
-        for (const m of response) {
-          const name = m.name || '';
-          const actions = m.supportedActions || [];
-          if (name.startsWith('models/gemini-') && actions.includes('generateContent')) {
-            list.push(name);
-          }
-        }
-      } else if (typeof response === 'object') {
-        const modelsArray = (response as any).models || (response as any).list;
-        if (Array.isArray(modelsArray)) {
-          for (const m of modelsArray) {
-            const name = m.name || '';
-            const actions = m.supportedActions || [];
-            if (name.startsWith('models/gemini-') && actions.includes('generateContent')) {
-              list.push(name);
-            }
-          }
-        }
-      }
-    }
-    if (list.length > 0) {
-      activeModelsCache = list;
-      console.log("Dynamically loaded active Gemini models:", activeModelsCache);
-    }
-  } catch (error) {
-    console.error("Failed to dynamically fetch active Gemini models:", error);
-  } finally {
-    isFetchingModels = false;
-  }
+  // No-op: active models are configured on the backend or falling back to static lists
+  return;
 }
-
-// Start fetching on service initialization
-refreshActiveModelsList();
 
 export function getDynamicModelFallbacks(requestedModel: string): string[] {
   const fullName = requestedModel.startsWith('models/') ? requestedModel : `models/${requestedModel}`;
@@ -277,171 +239,114 @@ export async function logTokenUsage(data: {
 export async function chatWithGemini(
   messages: Message[],
   systemInstruction?: string,
-  modelName: string = "gemini-3-flash-preview",
+  modelName: string = "gemini-2.5-flash",
   feature?: string
 ): Promise<string> {
-  if (activeModelsCache.length === 0) {
-    refreshActiveModelsList();
-  }
+  try {
+    const url = getProxyUrl();
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages,
+        systemInstruction,
+        modelName,
+        stream: false
+      })
+    });
 
-  const modelsToTry = getDynamicModelFallbacks(modelName);
-  
-  for (const model of modelsToTry) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
-      try {
-        console.log(`Attempting chatWithGemini with model: ${model} (attempt ${attempt}/${MAX_ATTEMPTS_PER_MODEL})`);
-        const response = await ai.models.generateContent({
-          model: model,
-          contents: messages.map(m => ({
-            role: m.role === 'system' ? 'user' : m.role,
-            parts: [{ text: m.content }]
-          })),
-          config: {
-            systemInstruction: systemInstruction,
-          },
-        });
-
-        // Extract and log token usage
-        const usage = response.usageMetadata;
-        if (usage) {
-          logTokenUsage({
-            modelName: model,
-            promptTokens: usage.promptTokenCount ?? 0,
-            completionTokens: usage.candidatesTokenCount ?? 0,
-            totalTokens: usage.totalTokenCount ?? 0,
-            feature
-          });
-        }
-
-        return response.text || "";
-      } catch (error) {
-        console.error(`Error on model ${model} (attempt ${attempt}):`, error);
-        
-        if (isProjectWideError(error)) {
-          console.error("Project-wide error encountered (billing/credentials/quota). Aborting model fallback.");
-          return "I encountered an error connecting to the intelligence bridge.";
-        }
-        
-        const isTransient = isTransientError(error);
-        const isLastAttemptForModel = attempt === MAX_ATTEMPTS_PER_MODEL;
-        const isLastModel = model === modelsToTry[modelsToTry.length - 1];
-        
-        if (isTransient && !isLastAttemptForModel) {
-          console.warn(`Transient error detected. Retrying ${model} in ${RETRY_DELAY_MS}ms...`);
-          await sleep(RETRY_DELAY_MS);
-          continue;
-        }
-        
-        if (isLastModel && isLastAttemptForModel) {
-          console.error("Gemini API Error (all fallbacks failed):", error);
-          return "I encountered an error connecting to the intelligence bridge.";
-        }
-        
-        console.warn(`Switching from ${model} to next fallback model...`);
-        break; // break out of the attempt loop to move to the next model
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
-  }
 
-  return "I encountered an error connecting to the intelligence bridge.";
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    return data.text || "";
+  } catch (error) {
+    console.error("Gemini API Error (via Proxy):", error);
+    return "I encountered an error connecting to the intelligence bridge.";
+  }
 }
 
 export async function* chatWithGeminiStream(
   messages: Message[],
   systemInstruction?: string,
-  modelName: string = "gemini-3-flash-preview",
+  modelName: string = "gemini-2.5-flash",
   feature?: string,
   onFallback?: (failedModel: string, nextModel: string) => void
 ): AsyncGenerator<string, void, unknown> {
-  if (activeModelsCache.length === 0) {
-    refreshActiveModelsList();
-  }
-
-  const modelsToTry = getDynamicModelFallbacks(modelName);
-  let chunksYielded = 0;
-
   try {
-    for (const model of modelsToTry) {
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt++) {
-        try {
-          console.log(`Attempting chatWithGeminiStream with model: ${model} (attempt ${attempt}/${MAX_ATTEMPTS_PER_MODEL})`);
-          const stream = await ai.models.generateContentStream({
-            model: model,
-            contents: messages.map(m => ({
-              role: m.role === 'system' ? 'user' : m.role,
-              parts: [{ text: m.content }]
-            })),
-            config: {
-              systemInstruction: systemInstruction,
-            },
-          });
+    const url = getProxyUrl();
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages,
+        systemInstruction,
+        modelName,
+        stream: true
+      })
+    });
 
-          let finalUsageMetadata: any = null;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
 
-          for await (const chunk of stream) {
-            if (chunk.usageMetadata) {
-              finalUsageMetadata = chunk.usageMetadata;
-            }
-            const text = chunk.text || "";
-            if (text) {
-              yield text;
-              chunksYielded++;
-            }
-          }
+    if (!response.body) {
+      throw new Error("Response body is not readable.");
+    }
 
-          if (finalUsageMetadata) {
-            logTokenUsage({
-              modelName: model,
-              promptTokens: finalUsageMetadata.promptTokenCount ?? 0,
-              completionTokens: finalUsageMetadata.candidatesTokenCount ?? 0,
-              totalTokens: finalUsageMetadata.totalTokenCount ?? 0,
-              feature
-            });
-          }
-          
-          return; // Successfully finished streaming
-        } catch (error) {
-          console.error(`Streaming error on model ${model} (attempt ${attempt}):`, error);
-          
-          // If we have already yielded some chunks to the client, we cannot retry/fallback
-          // because we would duplicate/corrupt the response.
-          if (chunksYielded > 0) {
-            console.error("Error occurred mid-stream. Cannot retry/fallback as chunks were already yielded.");
-            yield "\n[Stream interrupted due to connection error]";
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const cleanLine = line.trim();
+          if (!cleanLine.startsWith("data: ")) continue;
+
+          const dataStr = cleanLine.substring(6).trim();
+          if (dataStr === "[DONE]") {
             return;
           }
-          
-          if (isProjectWideError(error)) {
-            console.error("Project-wide streaming error encountered (billing/credentials/quota). Aborting model fallback.");
-            throw error;
-          }
-          
-          const isTransient = isTransientError(error);
-          const isLastAttemptForModel = attempt === MAX_ATTEMPTS_PER_MODEL;
-          const isLastModel = model === modelsToTry[modelsToTry.length - 1];
-          
-          if (isTransient && !isLastAttemptForModel) {
-            console.warn(`Transient streaming error detected. Retrying ${model} in ${RETRY_DELAY_MS}ms...`);
-            await sleep(RETRY_DELAY_MS);
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(dataStr);
+          } catch (e) {
+            console.error("Failed to parse stream chunk:", e, "Chunk string:", dataStr);
             continue;
           }
-          
-          if (isLastModel && isLastAttemptForModel) {
-            throw error; // Propagate to outer try-catch
+
+          if (parsed.error) {
+            throw new Error(parsed.error);
           }
-          
-          const nextModelIndex = modelsToTry.indexOf(model) + 1;
-          const nextModel = modelsToTry[nextModelIndex] || 'unknown';
-          console.warn(`Switching from ${model} to next fallback model for streaming...`);
-          if (onFallback) {
-            onFallback(model, nextModel);
+          if (parsed.text) {
+            yield parsed.text;
           }
-          break; // Try next model
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   } catch (finalError) {
-    console.error("Gemini Streaming Error (all fallbacks failed):", finalError);
+    console.error("Gemini Streaming Error (via Proxy):", finalError);
     yield "Error connecting to the stream.";
   }
 }

@@ -91,7 +91,7 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     const currentInput: Message = { role: 'user', content: input };
 
     const alignedPromise = (async () => {
-      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedSystemPrompt, "gemini-3.1-pro-preview", "playground-aligned");
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedSystemPrompt, "gemini-2.5-pro", "playground-aligned");
       for await (const chunk of stream) {
         alignedText += chunk;
         updateMessage(currentMessageIndex, { aligned: alignedText });
@@ -99,7 +99,7 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     })();
 
     const unalignedPromise = (async () => {
-      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedSystemPrompt, "gemini-3.1-pro-preview", "playground-unaligned");
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedSystemPrompt, "gemini-2.5-pro", "playground-unaligned");
       for await (const chunk of stream) {
         unalignedText += chunk;
         updateMessage(currentMessageIndex, { unaligned: unalignedText });
@@ -159,7 +159,7 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     const currentInput: Message = { role: 'user', content: presetPrompt };
 
     const alignedPromise = (async () => {
-      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedPresetSystemPrompt, "gemini-3.1-pro-preview", "playground-preset-aligned");
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], alignedPresetSystemPrompt, "gemini-2.5-pro", "playground-preset-aligned");
       for await (const chunk of stream) {
         alignedText += chunk;
         setMessages(prev => {
@@ -171,7 +171,7 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     })();
 
     const unalignedPromise = (async () => {
-      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedPresetSystemPrompt, "gemini-3.1-pro-preview", "playground-preset-unaligned");
+      const stream = chatWithGeminiStream([...conversationHistory, currentInput], unalignedPresetSystemPrompt, "gemini-2.5-pro", "playground-preset-unaligned");
       for await (const chunk of stream) {
         unalignedText += chunk;
         setMessages(prev => {
