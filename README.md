@@ -18,7 +18,7 @@ The application allows users to explore and interface with aligned artificial in
 ## Getting Started & Installation
 
 ### Prerequisites
-- **Node.js** (v18.x or higher recommended)
+- **Node.js** (v20.x or higher recommended)
 - **NPM** (comes with Node.js)
 - A **Google Gemini API Key** (for model inference)
 - A **Firebase Project** (for authentication, Firestore database, and hosting)
