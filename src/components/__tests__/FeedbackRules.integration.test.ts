@@ -43,7 +43,7 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     
     const docRef = await addDoc(tokenUsageRef, {
       userId: 'guest',
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-2.5-pro',
       promptTokens: 100,
       completionTokens: 50,
       totalTokens: 150,
@@ -60,7 +60,7 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     await expect(
       addDoc(tokenUsageRef, {
         userId: 'some-fake-uid',
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.5-pro',
         promptTokens: 100,
         completionTokens: 50,
         totalTokens: 150,
@@ -76,7 +76,7 @@ describe('Firestore Security Rules Integration (Live Database)', () => {
     await expect(
       addDoc(tokenUsageRef, {
         userId: 'guest',
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.5-pro',
         // missing promptTokens, completionTokens, totalTokens
         feature: 'test-suite',
         timestamp: serverTimestamp(),
