@@ -147,9 +147,9 @@ export function generatePortableMetadata(scores: OceanScores): string {
   });
 
   return `---
-# 📑 ALIGNMENT.md (v1.0)
+# 📑 ALIGNMENT.md (v1.5)
 **Context:** User Cognitive Alignment Shard
-**Source:** Cognitive Bridge v1.0
+**Source:** Cognitive Bridge v1.5
 
 ## User Profile: OCEAN Scores
 * **Openness:** ${scores.openness}/100
