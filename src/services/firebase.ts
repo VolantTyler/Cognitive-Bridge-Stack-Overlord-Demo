@@ -5,12 +5,12 @@ import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported, logEvent, Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBLKVBFtUYOiTaTm7b2F5CV3qsN_Sps0Ko",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "gen-lang-client-0374909318.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0374909318",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gen-lang-client-0374909318.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "426016734077",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:426016734077:web:90a2fa9ed43870d62bea14",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCTz_uaqfVLf5kgVm26_S-tkg3J_Iafy3Y",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "cognitive-bridge-ai.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "cognitive-bridge-ai",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "cognitive-bridge-ai.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "140307808298",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:140307808298:web:c8adcea8d451676d028353",
 };
 
 // Initialize Firebase

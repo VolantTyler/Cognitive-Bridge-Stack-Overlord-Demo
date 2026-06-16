@@ -20,8 +20,9 @@ The application allows users to explore and interface with aligned artificial in
 ### Prerequisites
 - **Node.js** (v20.x or higher recommended)
 - **NPM** (comes with Node.js)
-- A **Google Gemini API Key** (for model inference)
-- A **Firebase Project** (for authentication, Firestore database, and hosting)
+- A **Google Cloud Project** with the **Vertex AI API** enabled
+- A **Firebase Project** (for Auth, Firestore, and Functions hosting)
+- *(Optional)* A **Google Gemini API Key** (only if running the offline psychometric agent evaluation script)
 
 ### Installation Steps
 
@@ -35,9 +36,11 @@ The application allows users to explore and interface with aligned artificial in
    ```bash
    cp .env.example .env.local
    ```
-   Open `.env.local` and configure your API keys and Firebase project parameters:
+   Open `.env.local` and configure your environment variables:
    ```env
+   # Required only if running the psychometric agent evaluation script:
    GEMINI_API_KEY="your-gemini-api-key"
+
    APP_URL="http://localhost:3000"
    
    VITE_FIREBASE_API_KEY="your-firebase-api-key"

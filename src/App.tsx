@@ -60,7 +60,7 @@ export default function App() {
   useEffect(() => { scoresRef.current = scores; }, [scores]);
   useEffect(() => { mirrorMessagesRef.current = mirrorMessages; }, [mirrorMessages]);
   useEffect(() => { playgroundMessagesRef.current = playgroundMessages; }, [playgroundMessages]);
-  useEffect(() => { 
+  useEffect(() => {
     activeModuleRef.current = activeModule;
     logAnalyticsEvent('module_viewed', { module_id: activeModule });
   }, [activeModule]);
@@ -179,7 +179,7 @@ export default function App() {
           <div className="w-8 h-8 rounded bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/10">
             <Layers className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold tracking-tight text-sm sm:text-lg">COGNITIVE BRIDGE <span className="hidden sm:inline-block text-[10px] font-mono text-orange-500 ml-1 border border-orange-500/30 px-1 rounded uppercase">v1.0</span></span>
+          <span className="font-bold tracking-tight text-sm sm:text-lg">COGNITIVE BRIDGE <span className="hidden sm:inline-block text-[10px] font-mono text-orange-500 ml-1 border border-orange-500/30 px-1 rounded uppercase">v1.5</span></span>
         </div>
 
         <div className="flex items-center gap-4">
@@ -296,13 +296,12 @@ export default function App() {
             key={step.id}
             onClick={() => !step.disabled && setActiveModule(step.id as ModuleId)}
             disabled={step.disabled}
-            className={`text-[10px] uppercase tracking-[0.15em] font-bold transition-all px-3.5 py-1.5 rounded-full cursor-pointer ${
-              step.active
+            className={`text-[10px] uppercase tracking-[0.15em] font-bold transition-all px-3.5 py-1.5 rounded-full cursor-pointer ${step.active
                 ? 'text-text-primary bg-bg-surface border border-border-secondary'
                 : step.disabled
-                ? 'text-text-muted-darker cursor-not-allowed opacity-50'
-                : 'text-text-muted hover:text-text-primary'
-            }`}
+                  ? 'text-text-muted-darker cursor-not-allowed opacity-50'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
           >
             {step.label}
           </button>
@@ -424,7 +423,7 @@ export default function App() {
           >
             Tyler J. Stahl
           </a>          <span className="text-border-primary">/</span>
-          <span>Cognitive Bridge v1.0.4-BETA</span>
+          <span>Cognitive Bridge v1.5</span>
           <span className="text-border-primary">/</span>
           <button
             onClick={() => setIsFeedbackOpen(true)}

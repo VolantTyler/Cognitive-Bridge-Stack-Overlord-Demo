@@ -23,12 +23,12 @@ jobs:
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > service-account-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=service-account-key.json
-          npx firebase-tools deploy --only functions --project gen-lang-client-0374909318
+          npx firebase-tools deploy --only functions --project cognitive-bridge-ai
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0374909318 }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0374909318 }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
           channelId: live
-          projectId: gen-lang-client-0374909318
+          projectId: cognitive-bridge-ai

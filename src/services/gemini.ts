@@ -8,7 +8,7 @@ import { Message } from "../types";
 import { db, auth } from "./firebase";
 
 function getProxyUrl(): string {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "gen-lang-client-0374909318";
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "cognitive-bridge-ai";
   
   if (
     window.location.hostname === "localhost" ||
