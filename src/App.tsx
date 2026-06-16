@@ -5,13 +5,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon } from 'lucide-react';
+import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon, Settings, Cpu } from 'lucide-react';
 import { ModuleId, OceanScores, Message, ComparisonMessage } from './types';
 import { INITIAL_OCEAN, INITIAL_MIRROR_MESSAGE } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
 import FeedbackModal from './components/FeedbackModal';
+import SettingsModal from './components/SettingsModal';
+import { getOllamaConfig } from './services/gemini';
 
 import { auth, googleProvider, db, logAnalyticsEvent } from './services/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -22,6 +24,22 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
   const [scores, setScores] = useState<OceanScores | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [ollamaConfig, setOllamaConfigState] = useState(() => getOllamaConfig());
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Theme state initialized from localStorage
   const [isLightMode, setIsLightMode] = useState(() => {
@@ -203,84 +221,139 @@ export default function App() {
             ))}
           </div>
 
-          {/* Connection Status Bar */}
-          <div className="flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
-            <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
-            <span className={`hidden sm:inline ${user ? 'text-green-400' : 'text-amber-500'}`}>
-              {user ? 'Cloud Synced' : 'Local Guest'}
-            </span>
-          </div>
-
-          {/* Profile Calibration Header / Connect Action */}
-          {user ? (
-            <div className="flex items-center bg-bg-tertiary border border-border-primary rounded-xl p-1 sm:pl-3 sm:pr-2 sm:py-1 select-none shadow-sm">
-              <div className="hidden sm:flex flex-col items-end mr-3">
-                <span className="text-[10px] font-bold text-text-primary truncate max-w-[100px]" title={user.displayName || user.email || ''}>
-                  {user.displayName || user.email?.split('@')[0]}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-[9px] text-text-muted hover:text-red-400 transition-colors uppercase font-bold tracking-wider cursor-pointer"
-                >
-                  Disconnect
-                </button>
-              </div>
+          {/* Combined Settings Menu Dropdown Container */}
+          <div className="relative" ref={menuRef}>
+            {user ? (
               <button
-                onClick={handleLogout}
-                title="Click to Disconnect"
-                className="cursor-pointer group relative flex items-center justify-center"
+                onClick={() => setIsMenuOpen(prev => !prev)}
+                className="flex items-center gap-2 bg-bg-tertiary border border-border-primary hover:border-orange-500/30 rounded-xl px-3 py-1.5 select-none shadow-sm cursor-pointer transition-all hover:bg-bg-surface group"
+                title="Open settings menu"
               >
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="profile" className="w-7 h-7 rounded-lg border border-border-secondary object-cover group-hover:border-red-500/50 transition-colors" />
+                  <img src={user.photoURL} alt="profile" className="w-5 h-5 rounded-md object-cover border border-border-secondary group-hover:border-orange-500/40" />
                 ) : (
-                  <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center border border-border-secondary text-white text-xs font-bold group-hover:border-red-500/50 transition-colors">
+                  <div className="w-5 h-5 rounded-md bg-orange-500 flex items-center justify-center text-white text-[10px] font-bold">
                     {(user.displayName || user.email || '?')[0].toUpperCase()}
                   </div>
                 )}
+                <span className="text-[10px] font-bold text-text-primary group-hover:text-orange-500 transition-colors">
+                  {user.displayName || user.email?.split('@')[0]}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                <span className="text-[9px] uppercase tracking-wider text-green-400 font-bold hidden md:inline">Synced</span>
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleLogin}
-              className="flex items-center justify-center gap-2 p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
-              title="Login to Save Results"
-            >
-              <UserIcon className="w-3.5 h-3.5 text-orange-200 sm:hidden" />
-              <Brain className="w-3.5 h-3.5 text-orange-200 hidden sm:inline" />
-              <span className="hidden sm:inline">Login to Save Results</span>
-            </button>
-          )}
+            ) : (
+              <button
+                onClick={() => setIsMenuOpen(prev => !prev)}
+                className="flex items-center justify-center gap-2 p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
+                title="Open menu / Login"
+              >
+                <UserIcon className="w-3.5 h-3.5 text-orange-200 sm:hidden" />
+                <Brain className="w-3.5 h-3.5 text-orange-200 hidden sm:inline" />
+                <span className="hidden sm:inline">Login</span>
+              </button>
+            )}
 
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl bg-bg-tertiary border border-border-primary text-text-muted hover:text-text-primary hover:bg-bg-surface transition-all flex items-center justify-center cursor-pointer shadow-sm relative group overflow-hidden"
-            aria-label="Toggle theme"
-            id="theme-toggle-btn"
-          >
-            <svg
-              className="w-5 h-5 transition-transform duration-500 group-hover:rotate-12 text-text-muted hover:text-text-primary"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {/* Sun rays on the left side */}
-              <path d="M12 2v2" />
-              <path d="M4.93 4.93l1.41 1.41" />
-              <path d="M2 12h2" />
-              <path d="M4.93 19.07l1.41-1.41" />
-              <path d="M12 20v2" />
+            {/* Dropdown Menu Box */}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-border-primary bg-bg-secondary p-2 shadow-2xl z-50 flex flex-col gap-1 transition-colors duration-300"
+                >
+                  {/* Log In / Log Out */}
+                  {user ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg cursor-pointer transition-all text-left w-full border-0 bg-transparent"
+                    >
+                      <UserIcon className="w-4.5 h-4.5 shrink-0" />
+                      <span>Log Out</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleLogin();
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-orange-500 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg cursor-pointer transition-all text-left w-full border-0 bg-transparent"
+                    >
+                      <Brain className="w-4.5 h-4.5 shrink-0" />
+                      <span>Log In with Google</span>
+                    </button>
+                  )}
 
-              {/* Sun left half (filled) */}
-              <path d="M12 5 A 7 7 0 0 0 12 19 Z" fill="currentColor" />
+                  <div className="h-[1px] bg-border-primary my-1" />
 
-              {/* Moon right crescent (filled) */}
-              <path d="M12 5 A 7 7 0 0 1 12 19 A 5 5 0 0 0 12 5 Z" fill="currentColor" />
-            </svg>
-          </button>
+                  {/* Theme Mode Toggle */}
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg cursor-pointer transition-all w-full border-0 bg-transparent"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isLightMode ? (
+                        <svg className="w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                      )}
+                      <span>Theme Mode</span>
+                    </div>
+                    <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted bg-bg-primary px-1.5 py-0.5 rounded">
+                      {isLightMode ? 'Light' : 'Dark'}
+                    </span>
+                  </button>
+
+                  {/* Local Inference Configuration (Dev-only) */}
+                  {import.meta.env.DEV && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSettingsOpen(true);
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-all hover:bg-bg-tertiary w-full border-0 bg-transparent ${
+                        ollamaConfig.enabled 
+                          ? 'text-purple-400 hover:text-purple-300' 
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-4 h-4 shrink-0" />
+                        <span>Local Inference</span>
+                      </div>
+                      <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded ${
+                        ollamaConfig.enabled ? 'bg-purple-500/20 text-purple-400' : 'bg-bg-primary text-text-muted'
+                      }`}>
+                        {ollamaConfig.enabled ? ollamaConfig.model : 'Cloud'}
+                      </span>
+                    </button>
+                  )}
+
+                  {/* Leave Feedback */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFeedbackOpen(true);
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-lg cursor-pointer transition-all text-left w-full border-0 bg-transparent"
+                  >
+                    <svg className="w-4 h-4 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Leave Feedback</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
       </nav>
@@ -424,22 +497,16 @@ export default function App() {
             Tyler J. Stahl
           </a>          <span className="text-border-primary">/</span>
           <span>Cognitive Bridge v1.5</span>
-          <span className="text-border-primary">/</span>
-          <button
-            onClick={() => setIsFeedbackOpen(true)}
-            className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer"
-          >
-            Leave Feedback
-          </button>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
-          <span className="text-orange-500/50">Model: Gemini 3.1 Pro // Flash</span>
+          <span className="text-orange-500/50">Model: {ollamaConfig.enabled ? `Ollama (${ollamaConfig.model})` : 'Gemini 3.1 Pro // Flash'}</span>
           <span className="text-border-primary">/</span>
           <span>Procedural Skills Engine</span>
         </div>
       </footer>
 
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onConfigChange={(config) => setOllamaConfigState(config)} />
     </div>
   );
 }

@@ -236,12 +236,193 @@ export async function logTokenUsage(data: {
   }
 }
 
+export interface OllamaConfig {
+  enabled: boolean;
+  baseUrl: string;
+  model: string;
+}
+
+const DEFAULT_OLLAMA_CONFIG: OllamaConfig = {
+  enabled: false,
+  baseUrl: "http://localhost:11434",
+  model: "gemma4:e2b"
+};
+
+export function getOllamaConfig(): OllamaConfig {
+  try {
+    if (
+      typeof window !== 'undefined' &&
+      window.localStorage &&
+      typeof window.localStorage.getItem === 'function'
+    ) {
+      const saved = window.localStorage.getItem("ollama_config");
+      if (saved) {
+        return { ...DEFAULT_OLLAMA_CONFIG, ...JSON.parse(saved) };
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load ollama config:", e);
+  }
+  return DEFAULT_OLLAMA_CONFIG;
+}
+
+export function setOllamaConfig(config: OllamaConfig) {
+  try {
+    if (
+      typeof window !== 'undefined' &&
+      window.localStorage &&
+      typeof window.localStorage.setItem === 'function'
+    ) {
+      window.localStorage.setItem("ollama_config", JSON.stringify(config));
+    }
+  } catch (e) {
+    console.error("Failed to save ollama config:", e);
+  }
+}
+
+async function chatWithOllama(
+  messages: Message[],
+  systemInstruction: string | undefined,
+  config: OllamaConfig
+): Promise<string> {
+  try {
+    const ollamaMessages = [];
+    if (systemInstruction) {
+      ollamaMessages.push({ role: "system", content: systemInstruction });
+    }
+    messages.forEach(m => {
+      ollamaMessages.push({
+        role: m.role === "model" ? "assistant" : m.role,
+        content: m.content
+      });
+    });
+
+    const response = await fetch(`${config.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: ollamaMessages,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ollama HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.message?.content || "";
+  } catch (error) {
+    console.error("Ollama API Error:", error);
+    return `Error calling Ollama (${config.model}): ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
+async function* chatWithOllamaStream(
+  messages: Message[],
+  systemInstruction: string | undefined,
+  config: OllamaConfig
+): AsyncGenerator<string, void, unknown> {
+  try {
+    const ollamaMessages = [];
+    if (systemInstruction) {
+      ollamaMessages.push({ role: "system", content: systemInstruction });
+    }
+    messages.forEach(m => {
+      ollamaMessages.push({
+        role: m.role === "model" ? "assistant" : m.role,
+        content: m.content
+      });
+    });
+
+    const response = await fetch(`${config.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: ollamaMessages,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ollama HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    if (!response.body) {
+      throw new Error("Ollama stream body is not readable.");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const cleanLine = line.trim();
+          if (!cleanLine) continue;
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(cleanLine);
+          } catch (e) {
+            console.error("Failed to parse Ollama stream chunk:", e, "Chunk string:", cleanLine);
+            continue;
+          }
+
+          if (parsed.error) {
+            throw new Error(parsed.error);
+          }
+          if (parsed.message?.content) {
+            yield parsed.message.content;
+          }
+        }
+      }
+      if (buffer.trim()) {
+        try {
+          const parsed = JSON.parse(buffer.trim());
+          if (parsed.message?.content) {
+            yield parsed.message.content;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  } catch (finalError: any) {
+    console.error("Ollama Streaming Error:", finalError);
+    yield `Error connecting to Ollama stream: ${finalError.message || String(finalError)}`;
+  }
+}
+
 export async function chatWithGemini(
   messages: Message[],
   systemInstruction?: string,
   modelName: string = "gemini-2.5-flash",
   feature?: string
 ): Promise<string> {
+  const ollamaConfig = getOllamaConfig();
+  if (ollamaConfig.enabled) {
+    return chatWithOllama(messages, systemInstruction, ollamaConfig);
+  }
+
   try {
     const url = getProxyUrl();
     const response = await fetch(url, {
@@ -280,6 +461,12 @@ export async function* chatWithGeminiStream(
   feature?: string,
   onFallback?: (failedModel: string, nextModel: string) => void
 ): AsyncGenerator<string, void, unknown> {
+  const ollamaConfig = getOllamaConfig();
+  if (ollamaConfig.enabled) {
+    yield* chatWithOllamaStream(messages, systemInstruction, ollamaConfig);
+    return;
+  }
+
   try {
     const url = getProxyUrl();
     const response = await fetch(url, {
