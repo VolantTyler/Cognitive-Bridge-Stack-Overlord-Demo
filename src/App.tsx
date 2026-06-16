@@ -5,13 +5,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon } from 'lucide-react';
+import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon, Settings, Cpu } from 'lucide-react';
 import { ModuleId, OceanScores, Message, ComparisonMessage } from './types';
 import { INITIAL_OCEAN, INITIAL_MIRROR_MESSAGE } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
 import FeedbackModal from './components/FeedbackModal';
+import SettingsModal from './components/SettingsModal';
+import { getOllamaConfig } from './services/gemini';
 
 import { auth, googleProvider, db, logAnalyticsEvent } from './services/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -22,6 +24,8 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
   const [scores, setScores] = useState<OceanScores | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [ollamaConfig, setOllamaConfigState] = useState(() => getOllamaConfig());
 
   // Theme state initialized from localStorage
   const [isLightMode, setIsLightMode] = useState(() => {
@@ -203,6 +207,21 @@ export default function App() {
             ))}
           </div>
 
+          {/* Inference Mode Status Bar */}
+          <div className={`flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg border text-[10px] uppercase font-bold tracking-wider select-none shadow-sm ${
+            ollamaConfig.enabled 
+              ? 'bg-purple-900/10 border-purple-500/20 text-purple-400' 
+              : 'bg-bg-tertiary border-border-primary text-text-muted'
+          }`}>
+            <Cpu className={`w-3.5 h-3.5 ${ollamaConfig.enabled ? 'text-purple-400 animate-pulse' : 'text-text-muted-dark'}`} />
+            <span className="hidden sm:inline">
+              {ollamaConfig.enabled ? `Local (${ollamaConfig.model})` : 'Cloud Inference'}
+            </span>
+            <span className="sm:hidden">
+              {ollamaConfig.enabled ? 'Local' : 'Cloud'}
+            </span>
+          </div>
+
           {/* Connection Status Bar */}
           <div className="flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
             <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
@@ -210,6 +229,17 @@ export default function App() {
               {user ? 'Cloud Synced' : 'Local Guest'}
             </span>
           </div>
+
+          {/* Inference Settings Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className={`p-2 rounded-xl border text-text-muted hover:text-text-primary hover:bg-bg-surface transition-all flex items-center justify-center cursor-pointer shadow-sm relative group overflow-hidden ${
+              ollamaConfig.enabled ? 'border-purple-500/30 bg-purple-900/5 hover:border-purple-500/50' : 'border-border-primary bg-bg-tertiary'
+            }`}
+            aria-label="Configure local model settings"
+          >
+            <Settings className={`w-5 h-5 transition-transform duration-500 group-hover:rotate-45 ${ollamaConfig.enabled ? 'text-purple-400' : 'text-text-muted'}`} />
+          </button>
 
           {/* Profile Calibration Header / Connect Action */}
           {user ? (
@@ -433,13 +463,14 @@ export default function App() {
           </button>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
-          <span className="text-orange-500/50">Model: Gemini 3.1 Pro // Flash</span>
+          <span className="text-orange-500/50">Model: {ollamaConfig.enabled ? `Ollama (${ollamaConfig.model})` : 'Gemini 3.1 Pro // Flash'}</span>
           <span className="text-border-primary">/</span>
           <span>Procedural Skills Engine</span>
         </div>
       </footer>
 
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onConfigChange={(config) => setOllamaConfigState(config)} />
     </div>
   );
 }
