@@ -107,7 +107,7 @@ export default function SettingsModal({ isOpen, onClose, onConfigChange }: Setti
     } else {
       // If it is currently localhost, suggest a generic Wi-Fi pattern but keep whatever IP they might have had
       if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-        setBaseUrl('http://192.168.1.100:11434');
+        setBaseUrl('http://192.168.4.58:11434');
       }
       setModel('gemma4:26b');
     }

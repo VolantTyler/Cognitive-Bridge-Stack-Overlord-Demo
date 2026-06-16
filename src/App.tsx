@@ -207,77 +207,29 @@ export default function App() {
             ))}
           </div>
 
-          {/* Inference Mode Status Bar */}
-          <div className={`flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg border text-[10px] uppercase font-bold tracking-wider select-none shadow-sm ${
-            ollamaConfig.enabled 
-              ? 'bg-purple-900/10 border-purple-500/20 text-purple-400' 
-              : 'bg-bg-tertiary border-border-primary text-text-muted'
-          }`}>
-            <Cpu className={`w-3.5 h-3.5 ${ollamaConfig.enabled ? 'text-purple-400 animate-pulse' : 'text-text-muted-dark'}`} />
-            <span className="hidden sm:inline">
-              {ollamaConfig.enabled ? `Local (${ollamaConfig.model})` : 'Cloud Inference'}
-            </span>
-            <span className="sm:hidden">
-              {ollamaConfig.enabled ? 'Local' : 'Cloud'}
-            </span>
-          </div>
-
-          {/* Connection Status Bar */}
-          <div className="flex items-center gap-2 px-2 py-1.5 sm:px-3 rounded-lg bg-bg-tertiary border border-border-primary text-[10px] uppercase font-bold tracking-wider select-none shadow-sm">
-            <span className={`w-1.5 h-1.5 rounded-full ${user ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
-            <span className={`hidden sm:inline ${user ? 'text-green-400' : 'text-amber-500'}`}>
-              {user ? 'Cloud Synced' : 'Local Guest'}
-            </span>
-          </div>
-
-          {/* Inference Settings Button */}
+          {/* Leave Feedback Button */}
           <button
-            onClick={() => setIsSettingsOpen(true)}
-            className={`p-2 rounded-xl border text-text-muted hover:text-text-primary hover:bg-bg-surface transition-all flex items-center justify-center cursor-pointer shadow-sm relative group overflow-hidden ${
-              ollamaConfig.enabled ? 'border-purple-500/30 bg-purple-900/5 hover:border-purple-500/50' : 'border-border-primary bg-bg-tertiary'
-            }`}
-            aria-label="Configure local model settings"
+            onClick={() => setIsFeedbackOpen(true)}
+            className="hidden sm:inline-block text-xs uppercase tracking-wider font-bold text-text-muted hover:text-text-primary px-3.5 py-1.5 rounded-xl border border-border-primary bg-bg-tertiary hover:bg-bg-surface transition-all cursor-pointer shadow-sm relative group overflow-hidden"
           >
-            <Settings className={`w-5 h-5 transition-transform duration-500 group-hover:rotate-45 ${ollamaConfig.enabled ? 'text-purple-400' : 'text-text-muted'}`} />
+            Feedback
           </button>
 
-          {/* Profile Calibration Header / Connect Action */}
-          {user ? (
-            <div className="flex items-center bg-bg-tertiary border border-border-primary rounded-xl p-1 sm:pl-3 sm:pr-2 sm:py-1 select-none shadow-sm">
-              <div className="hidden sm:flex flex-col items-end mr-3">
-                <span className="text-[10px] font-bold text-text-primary truncate max-w-[100px]" title={user.displayName || user.email || ''}>
-                  {user.displayName || user.email?.split('@')[0]}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-[9px] text-text-muted hover:text-red-400 transition-colors uppercase font-bold tracking-wider cursor-pointer"
-                >
-                  Disconnect
-                </button>
-              </div>
-              <button
-                onClick={handleLogout}
-                title="Click to Disconnect"
-                className="cursor-pointer group relative flex items-center justify-center"
-              >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="profile" className="w-7 h-7 rounded-lg border border-border-secondary object-cover group-hover:border-red-500/50 transition-colors" />
-                ) : (
-                  <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center border border-border-secondary text-white text-xs font-bold group-hover:border-red-500/50 transition-colors">
-                    {(user.displayName || user.email || '?')[0].toUpperCase()}
-                  </div>
-                )}
-              </button>
-            </div>
-          ) : (
+          {/* Inference Settings Button (Dev-only) */}
+          {import.meta.env.DEV && (
             <button
-              onClick={handleLogin}
-              className="flex items-center justify-center gap-2 p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
-              title="Login to Save Results"
+              onClick={() => setIsSettingsOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] uppercase font-bold tracking-wider select-none shadow-sm transition-all cursor-pointer hover:bg-bg-surface ${
+                ollamaConfig.enabled 
+                  ? 'bg-purple-900/10 border-purple-500/20 text-purple-400 hover:border-purple-500/40' 
+                  : 'bg-bg-tertiary border-border-primary text-text-muted hover:text-text-primary'
+              }`}
+              title="Configure local model settings"
             >
-              <UserIcon className="w-3.5 h-3.5 text-orange-200 sm:hidden" />
-              <Brain className="w-3.5 h-3.5 text-orange-200 hidden sm:inline" />
-              <span className="hidden sm:inline">Login to Save Results</span>
+              <Cpu className={`w-3.5 h-3.5 ${ollamaConfig.enabled ? 'text-purple-400 animate-pulse' : 'text-text-muted-dark'}`} />
+              <span>
+                {ollamaConfig.enabled ? `Local: ${ollamaConfig.model}` : 'Cloud AI'}
+              </span>
             </button>
           )}
 
@@ -311,6 +263,38 @@ export default function App() {
               <path d="M12 5 A 7 7 0 0 1 12 19 A 5 5 0 0 0 12 5 Z" fill="currentColor" />
             </svg>
           </button>
+
+          {/* Profile / Connection Button */}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-bg-tertiary border border-border-primary hover:border-red-500/30 rounded-xl px-3 py-1.5 select-none shadow-sm cursor-pointer transition-all hover:bg-bg-surface group"
+              title="Click to Disconnect"
+            >
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="profile" className="w-5 h-5 rounded-md object-cover border border-border-secondary group-hover:border-red-500/40" />
+              ) : (
+                <div className="w-5 h-5 rounded-md bg-orange-500 flex items-center justify-center text-white text-[10px] font-bold">
+                  {(user.displayName || user.email || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="text-[10px] font-bold text-text-primary group-hover:text-red-400 transition-colors">
+                {user.displayName || user.email?.split('@')[0]}
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              <span className="text-[9px] uppercase tracking-wider text-green-400 font-bold hidden md:inline">Synced</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="flex items-center justify-center gap-2 p-2 sm:px-3.5 sm:py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-bold uppercase tracking-wider transition-all shadow-lg shadow-orange-600/10 cursor-pointer border border-orange-500/20"
+              title="Login to Save Results"
+            >
+              <UserIcon className="w-3.5 h-3.5 text-orange-200 sm:hidden" />
+              <Brain className="w-3.5 h-3.5 text-orange-200 hidden sm:inline" />
+              <span className="hidden sm:inline">Login</span>
+            </button>
+          )}
         </div>
 
       </nav>
@@ -454,13 +438,6 @@ export default function App() {
             Tyler J. Stahl
           </a>          <span className="text-border-primary">/</span>
           <span>Cognitive Bridge v1.5</span>
-          <span className="text-border-primary">/</span>
-          <button
-            onClick={() => setIsFeedbackOpen(true)}
-            className="text-orange-500 hover:text-orange-400 transition-colors cursor-pointer"
-          >
-            Leave Feedback
-          </button>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
           <span className="text-orange-500/50">Model: {ollamaConfig.enabled ? `Ollama (${ollamaConfig.model})` : 'Gemini 3.1 Pro // Flash'}</span>
