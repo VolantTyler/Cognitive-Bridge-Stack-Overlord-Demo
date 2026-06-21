@@ -6,6 +6,12 @@
       "type": "node-terminal",
       "request": "launch",
       "command": "npm install && npm run dev"
+    },
+    {
+      "name": "Launch Full Project (Vite + Functions)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev:all"
     }
   ]
 }

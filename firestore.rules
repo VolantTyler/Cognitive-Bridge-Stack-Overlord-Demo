@@ -91,14 +91,38 @@ service cloud.firestore {
              scores.neuroticism is number && scores.neuroticism >= 0 && scores.neuroticism <= 100;
     }
 
+    function isValidSession(session) {
+      return session.keys().hasAll(['activeModule', 'mirrorMessages', 'playgroundMessages']) &&
+             session.keys().hasOnly(['scores', 'activeModule', 'mirrorMessages', 'playgroundMessages']) &&
+             (session.activeModule in ['mirror', 'tailor', 'playground']) &&
+             (session.scores == null || isValidScores(session.scores)) &&
+             session.mirrorMessages is list && session.mirrorMessages.size() <= 100 &&
+             session.playgroundMessages is list && session.playgroundMessages.size() <= 100;
+    }
+
     function isValidUser(data) {
-      return hasRequiredFields(['activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
-             hasOnlyAllowedFields(['scores', 'activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
-             (data.activeModule in ['mirror', 'tailor', 'playground']) &&
-             (data.scores == null || isValidScores(data.scores)) &&
-             data.mirrorMessages is list && data.mirrorMessages.size() <= 100 &&
-             data.playgroundMessages is list && data.playgroundMessages.size() <= 100 &&
-             data.updatedAt is timestamp;
+      return (
+        // Old format (backward compatibility)
+        (
+          hasRequiredFields(['activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
+          hasOnlyAllowedFields(['scores', 'activeModule', 'mirrorMessages', 'playgroundMessages', 'updatedAt']) &&
+          (data.activeModule in ['mirror', 'tailor', 'playground']) &&
+          (data.scores == null || isValidScores(data.scores)) &&
+          data.mirrorMessages is list && data.mirrorMessages.size() <= 100 &&
+          data.playgroundMessages is list && data.playgroundMessages.size() <= 100 &&
+          data.updatedAt is timestamp
+        ) ||
+        // New dual-session format
+        (
+          hasRequiredFields(['sessions', 'audience', 'updatedAt']) &&
+          hasOnlyAllowedFields(['sessions', 'audience', 'updatedAt']) &&
+          (data.audience in ['adult', 'child']) &&
+          data.sessions.keys().hasOnly(['adult', 'child']) &&
+          isValidSession(data.sessions.adult) &&
+          isValidSession(data.sessions.child) &&
+          data.updatedAt is timestamp
+        )
+      );
     }
 
     function isValidFeedback(data) {
