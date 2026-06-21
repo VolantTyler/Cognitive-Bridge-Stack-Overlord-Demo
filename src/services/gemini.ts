@@ -15,7 +15,7 @@ function getProxyUrl(): string {
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "0.0.0.0"
   ) {
-    return `http://localhost:5001/${projectId}/us-central1/chatProxy`;
+    return `http://127.0.0.1:5001/${projectId}/us-central1/chatProxy`;
   }
   return "/api/chat";
 }
