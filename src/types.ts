@@ -30,3 +30,11 @@ export interface SteeringDirective {
   threshold: 'high' | 'low';
   text: string;
 }
+
+export interface SessionData {
+  scores: OceanScores | null;
+  mirrorMessages: Message[];
+  playgroundMessages: ComparisonMessage[];
+  activeModule: ModuleId;
+}
+

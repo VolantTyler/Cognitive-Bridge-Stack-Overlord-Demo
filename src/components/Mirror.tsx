@@ -5,18 +5,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, User, Bot, Sparkles, Brain, Loader2, ListTodo, ArrowRight } from 'lucide-react';
+import { Send, User, Bot, Sparkles, Brain, Loader2, ListTodo, ArrowRight, Trash2 } from 'lucide-react';
 import { Message, OceanScores } from '../types';
-import { MIRROR_SYSTEM_PROMPT } from '../constants';
+import { MIRROR_SYSTEM_PROMPT, MIRROR_SYSTEM_PROMPT_CHILD } from '../constants';
 import { chatWithGeminiStream } from '../services/gemini';
 import OceanCards from './OceanCards';
 
 interface MirrorProps {
+  audience: 'adult' | 'child';
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   onComplete: (scores: OceanScores) => void;
   onSaveSession?: (updatedMessages: Message[]) => void;
+  onReset: () => void;
 }
+
 
 function formatMirrorContent(content: string): string {
   // Remove JSON_SCORES part first
@@ -62,12 +65,13 @@ function formatMirrorContent(content: string): string {
   return text;
 }
 
-export default function Mirror({ messages, setMessages, onComplete, onSaveSession }: MirrorProps) {
+export default function Mirror({ audience, messages, setMessages, onComplete, onSaveSession, onReset }: MirrorProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [completedScores, setCompletedScores] = useState<OceanScores | null>(null);
   const [loadingText, setLoadingText] = useState('Analyzing...');
   const scrollRef = useRef<HTMLDivElement>(null);
+
 
   // Scan messages to check if mapping is already complete on mount or messages change
   useEffect(() => {
@@ -112,7 +116,7 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
 
     const stream = chatWithGeminiStream(
       [...messages, userMessage],
-      MIRROR_SYSTEM_PROMPT,
+      audience === 'child' ? MIRROR_SYSTEM_PROMPT_CHILD : MIRROR_SYSTEM_PROMPT,
       undefined,
       'mirror',
       (failedModel, nextModel) => {
@@ -161,22 +165,38 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-medium tracking-tight text-text-primary">The Mirror</h2>
-              <p className="text-xs text-text-muted uppercase tracking-widest">Psychometric Diagnostic</p>
+              <h2 className="font-medium tracking-tight text-text-primary">
+                {audience === 'child' ? "The Kid's Mirror" : 'The Mirror'}
+              </h2>
+              <p className="text-xs text-text-muted uppercase tracking-widest">
+                {audience === 'child' ? 'Calibrating Play Styles' : 'Psychometric Diagnostic'}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1 min-w-[120px]">
-            <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-text-muted-dark">
-              <ListTodo className="w-3 h-3" />
-              <span>Alignment {Math.min(scenarioCount, maxScenarios)} / {maxScenarios}</span>
-            </div>
-            <div className="w-full h-1.5 bg-bg-tertiary border border-border-primary/20 rounded-full overflow-hidden shadow-inner">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
-              />
+          <div className="flex items-center gap-4">
+            {messages.length > 1 && (
+              <button
+                onClick={onReset}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-primary bg-bg-tertiary text-[10px] uppercase font-bold text-text-muted hover:text-red-500 hover:border-red-500/30 transition-all cursor-pointer shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Reset Chat</span>
+              </button>
+            )}
+
+            <div className="flex flex-col items-end gap-1 min-w-[120px]">
+              <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-text-muted-dark">
+                <ListTodo className="w-3 h-3" />
+                <span>Alignment {Math.min(scenarioCount, maxScenarios)} / {maxScenarios}</span>
+              </div>
+              <div className="w-full h-1.5 bg-bg-tertiary border border-border-primary/20 rounded-full overflow-hidden shadow-inner">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -264,32 +284,65 @@ export default function Mirror({ messages, setMessages, onComplete, onSaveSessio
                   Skip diagnostic using a pre-calibrated test profile:
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
-                    disabled={isLoading}
-                    className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
-                  >
-                    <div className="text-[10px] font-bold text-accent-orange uppercase tracking-wide group-hover:text-accent-orange-hover transition-colors">High Extroversion and Neuroticism</div>
-                    <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Dampens hyper-reactive anxiety. Provides steady, structural ground.</div>
-                  </button>
+                  {audience === 'child' ? (
+                    <>
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-orange uppercase tracking-wide group-hover:text-accent-orange-hover transition-colors">Super Energetic & Easily Worried</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Calms down nervous feelings. Helps with step-by-step guidance.</div>
+                      </button>
 
-                  <button
-                    onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
-                    disabled={isLoading}
-                    className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
-                  >
-                    <div className="text-[10px] font-bold text-accent-yellow uppercase tracking-wide group-hover:text-accent-yellow-hover transition-colors">Low Extroversion, High Neuroticism</div>
-                    <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Enlists high-energy motivation, active encouragement & structure.</div>
-                  </button>
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-yellow uppercase tracking-wide group-hover:text-accent-yellow-hover transition-colors">Quiet & Easily Worried</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Provides cheering up, friendly encouragement, and clear play rules.</div>
+                      </button>
 
-                  <button
-                    onClick={() => setCompletedScores({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
-                    disabled={isLoading}
-                    className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
-                  >
-                    <div className="text-[10px] font-bold text-accent-purple uppercase tracking-wide group-hover:text-accent-purple-hover transition-colors">Low Conscientiousness, High Agreeableness</div>
-                    <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Counteracts consensus seeking. Mandates precision & clear definitions.</div>
-                  </button>
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-purple uppercase tracking-wide group-hover:text-accent-purple-hover transition-colors">Easygoing & Helper Friend</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Helps them make decisions without just agreeing with everyone.</div>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-orange uppercase tracking-wide group-hover:text-accent-orange-hover transition-colors">High Extroversion and Neuroticism</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Dampens hyper-reactive anxiety. Provides steady, structural ground.</div>
+                      </button>
+
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-yellow uppercase tracking-wide group-hover:text-accent-yellow-hover transition-colors">Low Extroversion, High Neuroticism</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Enlists high-energy motivation, active encouragement & structure.</div>
+                      </button>
+
+                      <button
+                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
+                        disabled={isLoading}
+                        className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
+                      >
+                        <div className="text-[10px] font-bold text-accent-purple uppercase tracking-wide group-hover:text-accent-purple-hover transition-colors">Low Conscientiousness, High Agreeableness</div>
+                        <div className="text-[9px] text-text-muted mt-1 italic leading-tight">Counteracts consensus seeking. Mandates precision & clear definitions.</div>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </>

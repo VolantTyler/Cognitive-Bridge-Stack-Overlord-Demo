@@ -5,9 +5,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon } from 'lucide-react';
-import { ModuleId, OceanScores, Message, ComparisonMessage } from './types';
-import { INITIAL_OCEAN, INITIAL_MIRROR_MESSAGE } from './constants';
+import { Brain, Layers, Dna, ArrowRight, Zap, Target, ShieldCheck, Github, User as UserIcon, AlertTriangle, X } from 'lucide-react';
+import { ModuleId, OceanScores, Message, ComparisonMessage, SessionData } from './types';
+import { INITIAL_OCEAN, INITIAL_MIRROR_MESSAGE, INITIAL_MIRROR_MESSAGE_CHILD } from './constants';
 import Mirror from './components/Mirror';
 import Tailor from './components/Tailor';
 import Playground from './components/Playground';
@@ -19,9 +19,8 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [activeModule, setActiveModule] = useState<ModuleId>('mirror');
-  const [scores, setScores] = useState<OceanScores | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [resetTarget, setResetTarget] = useState<'adult' | 'child' | null>(null);
 
   // Theme state initialized from localStorage
   const [isLightMode, setIsLightMode] = useState(() => {
@@ -46,49 +45,81 @@ export default function App() {
     setIsLightMode(prev => !prev);
   };
 
-  const [mirrorMessages, setMirrorMessages] = useState<Message[]>([
-    { role: 'model', content: INITIAL_MIRROR_MESSAGE }
-  ]);
-  const [playgroundMessages, setPlaygroundMessages] = useState<ComparisonMessage[]>([]);
+  // Audience & Sessions state
+  const [audience, setAudience] = useState<'adult' | 'child'>('adult');
+  const [sessions, setSessions] = useState<Record<'adult' | 'child', SessionData>>({
+    adult: {
+      scores: null,
+      mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE }],
+      playgroundMessages: [],
+      activeModule: 'mirror'
+    },
+    child: {
+      scores: null,
+      mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE_CHILD }],
+      playgroundMessages: [],
+      activeModule: 'mirror'
+    }
+  });
+
+  const currentSession = sessions[audience];
+  const scores = currentSession.scores;
+  const mirrorMessages = currentSession.mirrorMessages;
+  const playgroundMessages = currentSession.playgroundMessages;
+  const activeModule = currentSession.activeModule;
 
   // Refs to capture the latest state in the onAuthStateChanged closure
-  const scoresRef = useRef(scores);
-  const mirrorMessagesRef = useRef(mirrorMessages);
-  const playgroundMessagesRef = useRef(playgroundMessages);
-  const activeModuleRef = useRef(activeModule);
+  const sessionsRef = useRef(sessions);
+  const audienceRef = useRef(audience);
 
-  useEffect(() => { scoresRef.current = scores; }, [scores]);
-  useEffect(() => { mirrorMessagesRef.current = mirrorMessages; }, [mirrorMessages]);
-  useEffect(() => { playgroundMessagesRef.current = playgroundMessages; }, [playgroundMessages]);
+  useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
   useEffect(() => {
-    activeModuleRef.current = activeModule;
-    logAnalyticsEvent('module_viewed', { module_id: activeModule });
-  }, [activeModule]);
+    audienceRef.current = audience;
+    logAnalyticsEvent('audience_changed', { audience });
+  }, [audience]);
 
-  // Firestore save wrapper (stream-settlement optimized)
+  useEffect(() => {
+    logAnalyticsEvent('module_viewed', { module_id: activeModule, audience });
+  }, [activeModule, audience]);
+
+  // Firestore save wrapper (dual-session optimized)
   const saveToCloud = async (
-    updatedScores: OceanScores | null,
-    updatedMirror: Message[],
-    updatedPlayground: ComparisonMessage[],
-    updatedModule: ModuleId
+    updatedSessions: Record<'adult' | 'child', SessionData>,
+    updatedAudience: 'adult' | 'child'
   ) => {
     if (!auth.currentUser) return;
     try {
       const userDocRef = doc(db, 'users', auth.currentUser.uid);
       await setDoc(userDocRef, {
-        scores: updatedScores,
-        mirrorMessages: updatedMirror,
-        playgroundMessages: updatedPlayground.map(msg => ({
-          user: msg.user,
-          aligned: msg.aligned,
-          unaligned: msg.unaligned,
-          loading: false
-        })),
-        activeModule: updatedModule,
+        sessions: {
+          adult: {
+            scores: updatedSessions.adult.scores,
+            mirrorMessages: updatedSessions.adult.mirrorMessages,
+            playgroundMessages: updatedSessions.adult.playgroundMessages.map(msg => ({
+              user: msg.user,
+              aligned: msg.aligned,
+              unaligned: msg.unaligned,
+              loading: false
+            })),
+            activeModule: updatedSessions.adult.activeModule
+          },
+          child: {
+            scores: updatedSessions.child.scores,
+            mirrorMessages: updatedSessions.child.mirrorMessages,
+            playgroundMessages: updatedSessions.child.playgroundMessages.map(msg => ({
+              user: msg.user,
+              aligned: msg.aligned,
+              unaligned: msg.unaligned,
+              loading: false
+            })),
+            activeModule: updatedSessions.child.activeModule
+          }
+        },
+        audience: updatedAudience,
         updatedAt: serverTimestamp()
       });
     } catch (error) {
-      console.error("Failed to save session to cloud:", error);
+      console.error("Failed to save sessions to cloud:", error);
     }
   };
 
@@ -104,38 +135,81 @@ export default function App() {
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             const data = userDocSnap.data();
-            setScores(data.scores || null);
-            setMirrorMessages(data.mirrorMessages || []);
-            setPlaygroundMessages(data.playgroundMessages || []);
-            setActiveModule(data.activeModule || 'mirror');
+            const loadedAudience = data.audience || 'adult';
+            setAudience(loadedAudience);
+
+            if (data.sessions) {
+              setSessions(data.sessions);
+            } else {
+              // Backward compatibility: migrate old flat structure to sessions.adult
+              setSessions({
+                adult: {
+                  scores: data.scores || null,
+                  mirrorMessages: data.mirrorMessages || [{ role: 'model', content: INITIAL_MIRROR_MESSAGE }],
+                  playgroundMessages: data.playgroundMessages || [],
+                  activeModule: data.activeModule || 'mirror'
+                },
+                child: {
+                  scores: null,
+                  mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE_CHILD }],
+                  playgroundMessages: [],
+                  activeModule: 'mirror'
+                }
+              });
+            }
           } else {
-            // New user: Migrate local guest session to Cloud
+            // New user: Migrate local guest sessions to Cloud
             await setDoc(userDocRef, {
-              scores: scoresRef.current,
-              mirrorMessages: mirrorMessagesRef.current,
-              playgroundMessages: playgroundMessagesRef.current.map(msg => ({
-                user: msg.user,
-                aligned: msg.aligned,
-                unaligned: msg.unaligned,
-                loading: false
-              })),
-              activeModule: activeModuleRef.current,
+              sessions: {
+                adult: {
+                  scores: sessionsRef.current.adult.scores,
+                  mirrorMessages: sessionsRef.current.adult.mirrorMessages,
+                  playgroundMessages: sessionsRef.current.adult.playgroundMessages.map(msg => ({
+                    user: msg.user,
+                    aligned: msg.aligned,
+                    unaligned: msg.unaligned,
+                    loading: false
+                  })),
+                  activeModule: sessionsRef.current.adult.activeModule
+                },
+                child: {
+                  scores: sessionsRef.current.child.scores,
+                  mirrorMessages: sessionsRef.current.child.mirrorMessages,
+                  playgroundMessages: sessionsRef.current.child.playgroundMessages.map(msg => ({
+                    user: msg.user,
+                    aligned: msg.aligned,
+                    unaligned: msg.unaligned,
+                    loading: false
+                  })),
+                  activeModule: sessionsRef.current.child.activeModule
+                }
+              },
+              audience: audienceRef.current,
               updatedAt: serverTimestamp()
             });
           }
         } catch (error) {
-          console.error("Error restoring/migrating session:", error);
+          console.error("Error restoring/migrating sessions:", error);
         }
       } else {
         setUser(null);
         logAnalyticsEvent('auth_state_changed', { status: 'logged_out' });
         // Clean slate on disconnect / local guest mode
-        setScores(null);
-        setMirrorMessages([
-          { role: 'model', content: INITIAL_MIRROR_MESSAGE }
-        ]);
-        setPlaygroundMessages([]);
-        setActiveModule('mirror');
+        setAudience('adult');
+        setSessions({
+          adult: {
+            scores: null,
+            mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE }],
+            playgroundMessages: [],
+            activeModule: 'mirror'
+          },
+          child: {
+            scores: null,
+            mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE_CHILD }],
+            playgroundMessages: [],
+            activeModule: 'mirror'
+          }
+        });
       }
     });
 
@@ -158,15 +232,120 @@ export default function App() {
     }
   };
 
+  const handleAudienceToggle = (newAudience: 'adult' | 'child') => {
+    setAudience(newAudience);
+    saveToCloud(sessions, newAudience);
+  };
+
+  const handleResetSession = (targetAudience: 'adult' | 'child') => {
+    setSessions(prev => {
+      const defaultSession: SessionData = targetAudience === 'adult'
+        ? {
+            scores: null,
+            mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE }],
+            playgroundMessages: [],
+            activeModule: 'mirror'
+          }
+        : {
+            scores: null,
+            mirrorMessages: [{ role: 'model', content: INITIAL_MIRROR_MESSAGE_CHILD }],
+            playgroundMessages: [],
+            activeModule: 'mirror'
+          };
+      const updated = {
+        ...prev,
+        [targetAudience]: defaultSession
+      };
+      saveToCloud(updated, audience);
+      return updated;
+    });
+  };
+
   const handleMirrorComplete = (newScores: OceanScores) => {
-    setScores(newScores);
-    setActiveModule('tailor');
-    saveToCloud(newScores, mirrorMessages, playgroundMessages, 'tailor');
+    setSessions(prev => {
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          scores: newScores,
+          activeModule: 'tailor' as ModuleId
+        }
+      };
+      saveToCloud(updated, audience);
+      return updated;
+    });
   };
 
   const handleMirrorSave = (updatedMirrorMessages: Message[]) => {
-    setMirrorMessages(updatedMirrorMessages);
-    saveToCloud(scores, updatedMirrorMessages, playgroundMessages, activeModule);
+    setSessions(prev => {
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          mirrorMessages: updatedMirrorMessages
+        }
+      };
+      saveToCloud(updated, audience);
+      return updated;
+    });
+  };
+
+  const setActiveModule = (module: ModuleId) => {
+    setSessions(prev => {
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          activeModule: module
+        }
+      };
+      saveToCloud(updated, audience);
+      return updated;
+    });
+  };
+
+  const setScores = (newScores: OceanScores | null) => {
+    setSessions(prev => {
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          scores: newScores
+        }
+      };
+      saveToCloud(updated, audience);
+      return updated;
+    });
+  };
+
+  const setMirrorMessages = (updater: React.SetStateAction<Message[]>) => {
+    setSessions(prev => {
+      const currentMsgs = prev[audience].mirrorMessages;
+      const nextMsgs = typeof updater === 'function' ? updater(currentMsgs) : updater;
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          mirrorMessages: nextMsgs
+        }
+      };
+      return updated;
+    });
+  };
+
+  const setPlaygroundMessages = (updater: React.SetStateAction<ComparisonMessage[]>) => {
+    setSessions(prev => {
+      const currentMsgs = prev[audience].playgroundMessages;
+      const nextMsgs = typeof updater === 'function' ? updater(currentMsgs) : updater;
+      const updated = {
+        ...prev,
+        [audience]: {
+          ...prev[audience],
+          playgroundMessages: nextMsgs
+        }
+      };
+      return updated;
+    });
   };
 
   const currentStep = scores ? (activeModule === 'playground' ? 3 : 2) : 1;
@@ -332,25 +511,71 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 flex flex-col min-h-0 overflow-hidden">
+        {/* Global Audience Toggle */}
+        <div className="flex justify-end mb-6">
+          <div className="bg-bg-secondary p-1 rounded-xl border border-border-primary flex items-center gap-1 shadow-sm transition-colors duration-300">
+            <button
+              onClick={() => handleAudienceToggle('adult')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                audience === 'adult'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              Adult Mode
+            </button>
+            <button
+              onClick={() => handleAudienceToggle('child')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                audience === 'child'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              K-12 Child Mode
+            </button>
+          </div>
+        </div>
+
         <AnimatePresence mode="wait">
           {activeModule === 'mirror' && (
             <motion.div
-              key="mirror"
+              key={`mirror-${audience}`}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               className="flex-1 flex flex-col"
             >
               <div className="mb-8">
-                <h1 className="text-4xl font-bold tracking-tighter mb-2">Make Your AI Fit You</h1>
-                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">You get along with certain people better than others. It's the same with your AI assistants. Answer a few questions and we'll map your OCEAN personality traits to make your AI fit YOU. (Or, pick one of the examples below to skip ahead!)</p>
+                <h1 className="text-4xl font-bold tracking-tighter mb-2">
+                  {audience === 'child' ? 'Make Your AI Help You Play & Learn' : 'Make Your AI Fit You'}
+                </h1>
+                <p className="text-text-muted text-lg leading-relaxed max-w-2xl">
+                  {audience === 'child'
+                    ? "We all like to learn and talk in different ways. Answer a few questions about how you play and make decisions, and we will make your AI fit YOU!"
+                    : "You get along with certain people better than others. It's the same with your AI assistants. Answer a few questions and we'll map your OCEAN personality traits to make your AI fit YOU. (Or, pick one of the examples below to skip ahead!)"}
+                </p>
               </div>
               <div className="flex-1 min-h-[500px]">
                 <Mirror
+                  audience={audience}
                   messages={mirrorMessages}
                   setMessages={setMirrorMessages}
                   onComplete={handleMirrorComplete}
-                  onSaveSession={handleMirrorSave}
+                  onSaveSession={(updatedMsgs) => {
+                    setSessions(prev => {
+                      const updated = {
+                        ...prev,
+                        [audience]: {
+                          ...prev[audience],
+                          mirrorMessages: updatedMsgs
+                        }
+                      };
+                      saveToCloud(updated, audience);
+                      return updated;
+                    });
+                  }}
+                  onReset={() => setResetTarget(audience)}
                 />
               </div>
             </motion.div>
@@ -358,7 +583,7 @@ export default function App() {
 
           {activeModule === 'tailor' && scores && (
             <motion.div
-              key="tailor"
+              key={`tailor-${audience}`}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
@@ -370,11 +595,12 @@ export default function App() {
               </div>
               <div className="flex-1">
                 <Tailor
+                  audience={audience}
                   scores={scores}
                   onNext={() => {
                     setActiveModule('playground');
-                    saveToCloud(scores, mirrorMessages, playgroundMessages, 'playground');
                   }}
+                  onReset={() => setResetTarget(audience)}
                 />
               </div>
             </motion.div>
@@ -382,35 +608,96 @@ export default function App() {
 
           {activeModule === 'playground' && scores && (
             <motion.div
-              key="playground"
+              key={`playground-${audience}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               className="flex-1 flex flex-col"
             >
               <div className="mb-6">
-                <h2 className="text-3xl font-bold tracking-tight">Interfacing with Aligned Intelligence</h2>
-                <p className="text-text-muted mt-1">Directives mapped. Prompt fatigue eliminated. Communicate with your matched model.</p>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  {audience === 'child' ? 'Chatting with Your Aligned Helper' : 'Interfacing with Aligned Intelligence'}
+                </h2>
+                <p className="text-text-muted mt-1">
+                  {audience === 'child'
+                    ? 'Directives set. Let\'s see how your Aligned and Unaligned helpers answer your questions!'
+                    : 'Directives mapped. Prompt fatigue eliminated. Communicate with your matched model.'}
+                </p>
               </div>
               <div className="flex-1 min-h-0">
                 <Playground
+                  audience={audience}
                   scores={scores}
                   messages={playgroundMessages}
                   setMessages={setPlaygroundMessages}
                   setScores={setScores}
                   onSaveSession={(updatedPlayground, updatedScores) => {
-                    const finalScores = updatedScores || scores;
-                    if (updatedScores) {
-                      setScores(updatedScores);
-                    }
-                    saveToCloud(finalScores, mirrorMessages, updatedPlayground, activeModule);
+                    setSessions(prev => {
+                      const updated = {
+                        ...prev,
+                        [audience]: {
+                          ...prev[audience],
+                          playgroundMessages: updatedPlayground,
+                          scores: updatedScores !== undefined ? updatedScores : prev[audience].scores
+                        }
+                      };
+                      saveToCloud(updated, audience);
+                      return updated;
+                    });
                   }}
+                  onReset={() => setResetTarget(audience)}
                 />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Irreversible Reset Warning Modal */}
+      <AnimatePresence>
+        {resetTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setResetTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="p-6 rounded-2xl border max-w-sm w-full shadow-2xl bg-bg-secondary border-red-500/50 text-text-primary text-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-center gap-2 mb-4 text-red-500">
+                <AlertTriangle className="w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Irreversible Profile Reset</h3>
+              <p className="text-sm leading-relaxed text-text-muted mb-6">
+                Are you sure you want to reset your <strong>{resetTarget === 'adult' ? 'Adult' : 'K-12 Child'}</strong> profile? This will permanently delete your responses, calculated scores, and chat history.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    handleResetSession(resetTarget);
+                    setResetTarget(null);
+                  }}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Yes, Reset Profile
+                </button>
+                <button
+                  onClick={() => setResetTarget(null)}
+                  className="w-full py-3 bg-bg-surface hover:bg-bg-tertiary border border-border-primary text-text-primary rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer Branding */}
       <footer className="h-auto md:h-10 border-t border-border-primary px-6 py-4 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 text-[9px] uppercase tracking-[0.3em] font-bold text-text-muted-darker bg-bg-primary transition-colors duration-300">

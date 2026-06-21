@@ -6,13 +6,15 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { OceanScores, SteeringDirective } from '../types';
-import { STEERING_LIBRARY, generatePortableMetadata } from '../constants';
+import { STEERING_LIBRARY, STEERING_LIBRARY_CHILD, generatePortableMetadata } from '../constants';
 import { Brain, ArrowRight, Dna, Activity, Users, ShieldAlert, Heart, Copy, Check, FileCode } from 'lucide-react';
 import OceanCards from './OceanCards';
 
 interface TailorProps {
+  audience: 'adult' | 'child';
   scores: OceanScores;
   onNext: () => void;
+  onReset: () => void;
 }
 
 const TRAIT_CONFIG = {
@@ -23,20 +25,22 @@ const TRAIT_CONFIG = {
   neuroticism: { label: 'Neuroticism', color: 'text-accent-red' },
 };
 
-export default function Tailor({ scores, onNext }: TailorProps) {
+export default function Tailor({ audience, scores, onNext, onReset }: TailorProps) {
   const [copied, setCopied] = useState(false);
   
-  const activeDirectives = STEERING_LIBRARY.filter(d => {
+  const library = audience === 'child' ? STEERING_LIBRARY_CHILD : STEERING_LIBRARY;
+  const activeDirectives = library.filter(d => {
     const value = scores[d.trait];
     return (d.threshold === 'high' && value > 70) || (d.threshold === 'low' && value < 30);
   });
 
   const handleCopy = () => {
-    const text = generatePortableMetadata(scores);
+    const text = generatePortableMetadata(scores, audience);
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
 
   return (
     <div className="h-full flex flex-col gap-6 overflow-hidden">
@@ -129,13 +133,19 @@ export default function Tailor({ scores, onNext }: TailorProps) {
             </div>
           </div>
 
-          <div className="mt-auto pt-6 border-t border-border-primary">
+          <div className="mt-auto pt-6 border-t border-border-primary flex flex-col gap-3">
             <button 
               onClick={onNext}
-              className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 group"
+              className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 group cursor-pointer"
             >
               Initialize Aligned Agent
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+              onClick={onReset}
+              className="w-full py-2.5 bg-bg-surface hover:bg-bg-tertiary border border-border-primary text-text-muted hover:text-red-500 hover:border-red-500/30 transition-all rounded-xl text-xs font-bold uppercase cursor-pointer"
+            >
+              Reset {audience === 'child' ? 'Child' : 'Adult'} Profile
             </button>
           </div>
         </div>

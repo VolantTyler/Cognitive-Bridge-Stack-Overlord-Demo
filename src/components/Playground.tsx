@@ -12,14 +12,16 @@ import { chatWithGeminiStream } from '../services/gemini';
 import OceanCards from './OceanCards';
 
 interface PlaygroundProps {
+  audience: 'adult' | 'child';
   scores: OceanScores;
   messages: ComparisonMessage[];
   setMessages: React.Dispatch<React.SetStateAction<ComparisonMessage[]>>;
   setScores: React.Dispatch<React.SetStateAction<OceanScores | null>>;
   onSaveSession?: (updatedMessages: ComparisonMessage[], updatedScores?: OceanScores) => void;
+  onReset: () => void;
 }
 
-export default function Playground({ scores, messages, setMessages, setScores, onSaveSession }: PlaygroundProps) {
+export default function Playground({ audience, scores, messages, setMessages, setScores, onSaveSession, onReset }: PlaygroundProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<{ text: string, explanation: string, type: string } | null>(null);
@@ -54,8 +56,8 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     });
   };
   
-  const alignedSystemPrompt = generateAlignmentPrompt(scores);
-  const unalignedSystemPrompt = generateInverseAlignmentPrompt(scores);
+  const alignedSystemPrompt = generateAlignmentPrompt(scores, audience);
+  const unalignedSystemPrompt = generateInverseAlignmentPrompt(scores, audience);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -149,8 +151,8 @@ export default function Playground({ scores, messages, setMessages, setScores, o
     let alignedText = '';
     let unalignedText = '';
 
-    const alignedPresetSystemPrompt = generateAlignmentPrompt(presetScores);
-    const unalignedPresetSystemPrompt = generateInverseAlignmentPrompt(presetScores);
+    const alignedPresetSystemPrompt = generateAlignmentPrompt(presetScores, audience);
+    const unalignedPresetSystemPrompt = generateInverseAlignmentPrompt(presetScores, audience);
 
     const conversationHistory: Message[] = messages.flatMap(m => [
       { role: 'user', content: m.user },
@@ -488,6 +490,13 @@ export default function Playground({ scores, messages, setMessages, setScores, o
                 </div>
              </div>
           </div>
+
+          <button
+            onClick={onReset}
+            className="w-full py-2.5 bg-bg-tertiary hover:bg-bg-surface border border-border-primary text-text-muted hover:text-red-500 hover:border-red-500/30 transition-all rounded-xl text-xs font-bold uppercase cursor-pointer"
+          >
+            Reset {audience === 'child' ? 'Child' : 'Adult'} Profile
+          </button>
         </div>
       </div>
     </div>
