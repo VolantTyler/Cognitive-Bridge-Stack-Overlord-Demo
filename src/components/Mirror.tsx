@@ -102,6 +102,19 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
     }
   }, [messages]);
 
+  const handlePresetSelect = (presetScores: OceanScores) => {
+    setCompletedScores(presetScores);
+    const presetMsg: Message = {
+      role: 'model',
+      content: `Preset selected.\nJSON_SCORES:\n${JSON.stringify(presetScores, null, 2)}`
+    };
+    const updatedMessages = [...messages, presetMsg];
+    setMessages(updatedMessages);
+    if (onSaveSession) {
+      onSaveSession(updatedMessages);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -287,7 +300,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                   {audience === 'child' ? (
                     <>
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >
@@ -296,7 +309,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                       </button>
 
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >
@@ -305,7 +318,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                       </button>
 
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >
@@ -316,7 +329,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                   ) : (
                     <>
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 50, extroversion: 90, agreeableness: 50, neuroticism: 85 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-orange text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >
@@ -325,7 +338,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                       </button>
 
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 50, extroversion: 15, agreeableness: 50, neuroticism: 90 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-yellow text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >
@@ -334,7 +347,7 @@ export default function Mirror({ audience, messages, setMessages, onComplete, on
                       </button>
 
                       <button
-                        onClick={() => setCompletedScores({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
+                        onClick={() => handlePresetSelect({ openness: 50, conscientiousness: 15, extroversion: 50, agreeableness: 90, neuroticism: 50 })}
                         disabled={isLoading}
                         className="p-3 rounded-xl border border-border-card bg-bg-secondary/60 hover:bg-bg-tertiary hover:border-accent-purple text-left transition-all disabled:opacity-50 group flex flex-col justify-between cursor-pointer"
                       >

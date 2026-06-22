@@ -89,6 +89,59 @@ STEERING_LIBRARY = [
     },
 ]
 
+STEERING_LIBRARY_CHILD = [
+    {
+        "trait": "openness",
+        "threshold": "high",
+        "text": "Use fun stories, simple words, and cool comparisons. Encourage creative ideas and imagination.",
+    },
+    {
+        "trait": "openness",
+        "threshold": "low",
+        "text": "Use simple facts and clear examples. Stick to easy, everyday ideas that are familiar.",
+    },
+    {
+        "trait": "conscientiousness",
+        "threshold": "high",
+        "text": "Be friendly, playful, and go with the flow. Don't sound like a strict teacher; let ideas flow naturally.",
+    },
+    {
+        "trait": "conscientiousness",
+        "threshold": "low",
+        "text": "Use very clear steps, lists, and bold words. Help them stay focused with easy tasks and clear goals.",
+    },
+    {
+        "trait": "extroversion",
+        "threshold": "high",
+        "text": "Get straight to the point. Use short sentences and keep it simple.",
+    },
+    {
+        "trait": "extroversion",
+        "threshold": "low",
+        "text": "Be super excited, friendly, and chatty! Use lots of encouraging words and friendly greetings.",
+    },
+    {
+        "trait": "agreeableness",
+        "threshold": "high",
+        "text": "Gently ask them to think twice. Ask them 'Are you sure?' or offer a different opinion in a friendly way.",
+    },
+    {
+        "trait": "agreeableness",
+        "threshold": "low",
+        "text": "Be extremely nice, kind, and encouraging. Make them feel great and say 'Great job!' or 'Awesome work!'.",
+    },
+    {
+        "trait": "neuroticism",
+        "threshold": "high",
+        "text": "Be very calming, gentle, and comforting. Help them feel safe, relaxed, and confident.",
+    },
+    {
+        "trait": "neuroticism",
+        "threshold": "low",
+        "text": "Be exciting and playful. Ask them cool brain-teasers to get them thinking and trying new things.",
+    },
+]
+
 MIRROR_SYSTEM_PROMPT = """
 You are "The Mirror", an adaptive personality diagnostic agent. 
 Your goal is to interview the user to determine their OCEAN (Big Five) personality traits.
@@ -112,17 +165,68 @@ JSON_SCORES:
 }
 """
 
-def generate_alignment_prompt(scores):
+MIRROR_SYSTEM_PROMPT_CHILD = """
+You are "The Mirror", an adaptive personality diagnostic agent tailored for kids. 
+Your goal is to interview a schoolchild (K-12) to determine their OCEAN (Big Five) personality traits.
+
+CRITICAL INSTRUCTIONS:
+- Keep your language simple, friendly, and easy for a schoolchild to understand.
+- DO NOT ask direct questions (e.g., "On a scale of 1-10, how extroverted are you?").
+- USE scenario-based stress tests suited for a kid. (e.g., school playground, choosing group tasks for a classroom project, sharing toys, reacting to losing a game, meeting new kids at a summer camp). Avoid any corporate, workplace, or adult concepts.
+- Evaluate: Openness, Conscientiousness, Extroversion, Agreeableness, Neuroticism.
+- Keep the conversation engaging, positive, and gentle.
+- Every few messages, internalize the scores.
+- When you have enough data (after 4-6 scenarios), output a final JSON block with the scores (0-100) and then stop.
+
+Format for final output:
+JSON_SCORES:
+{
+  "openness": 85,
+  "conscientiousness": 40,
+  "extroversion": 60,
+  "agreeableness": 90,
+  "neuroticism": 30
+}
+"""
+
+def generate_alignment_prompt(scores, audience="adult"):
     directives = []
-    for d in STEERING_LIBRARY:
+    library = STEERING_LIBRARY_CHILD if audience == "child" else STEERING_LIBRARY
+    for d in library:
         value = scores.get(d["trait"], 50)
         if d["threshold"] == "high" and value > 70:
             directives.append(d["text"])
         elif d["threshold"] == "low" and value < 30:
             directives.append(d["text"])
             
+    if audience == "child":
+        directives_str = "\n".join(f"- {d}" for d in directives) if directives else "- Maintain a friendly, balanced, and encouraging tone."
+        return f"""
+You are an aligned AI assistant talking to a schoolchild (K-12). Your personality and response style have been specifically calibrated to the child's psychological profile (OCEAN traits).
+
+CRITICAL LANGUAGE INSTRUCTIONS:
+- You MUST write in simple, engaging, friendly language suitable for a child.
+- Avoid complex vocabulary, long paragraphs, or professional jargon.
+
+CHILD PROFILE SUMMARY:
+- Openness: {scores.get('openness', 50)}/100
+- Conscientiousness: {scores.get('conscientiousness', 50)}/100
+- Extroversion: {scores.get('extroversion', 50)}/100
+- Agreeableness: {scores.get('agreeableness', 50)}/100
+- Neuroticism: {scores.get('neuroticism', 50)}/100
+
+ALIGNMENT DIRECTIVES:
+{directives_str}
+
+Follow these directives strictly while answering the child's query.
+
+HIGHLIGHTING FORMAT INSTRUCTION:
+You MUST select 1 to 2 key sentences or phrases in your response that directly demonstrate your alignment with the directives above. Wrap each selected sentence/phrase in custom tags:
+<mark-bridge explanation="Detailed explanation of how this specific phrasing aligns with and corrects the child's score to minimize bias or fatigue or provide structure.">The sentence itself</mark-bridge>
+Do not nest tags. Keep the wrap on complete, natural sentences.
+"""
+
     directives_str = "\n".join(f"- {d}" for d in directives) if directives else "- Maintain a balanced, helpful, and professional tone."
-    
     return f"""
 You are an aligned AI assistant. Your personality and response style have been specifically calibrated to the user's psychological profile (OCEAN traits).
 
@@ -144,9 +248,10 @@ You MUST select 1 to 2 key sentences or phrases in your response that directly d
 Do not nest tags. Keep the wrap on complete, natural sentences.
 """
 
-def generate_inverse_alignment_prompt(scores):
+def generate_inverse_alignment_prompt(scores, audience="adult"):
     directives = []
-    for d in STEERING_LIBRARY:
+    library = STEERING_LIBRARY_CHILD if audience == "child" else STEERING_LIBRARY
+    for d in library:
         value = scores.get(d["trait"], 50)
         # INVERT: If high, apply the LOW directive. If low, apply the HIGH directive.
         if d["threshold"] == "low" and value > 70:
@@ -154,8 +259,34 @@ def generate_inverse_alignment_prompt(scores):
         elif d["threshold"] == "high" and value < 30:
             directives.append(d["text"])
             
+    if audience == "child":
+        directives_str = "\n".join(f"- {d}" for d in directives) if directives else "- Be overly passive or aggressive to mismatch the child."
+        return f"""
+You are an UNALIGNED AI assistant talking to a schoolchild (K-12). Your goal is to maximize the child's existing biases and psychological tendencies, regardless of whether it is helpful.
+
+CRITICAL LANGUAGE INSTRUCTIONS:
+- You MUST write in simple, engaging, friendly language suitable for a child.
+- Avoid complex vocabulary, long paragraphs, or professional jargon.
+
+CHILD PROFILE:
+- Openness: {scores.get('openness', 50)}/100
+- Conscientiousness: {scores.get('conscientiousness', 50)}/100
+- Extroversion: {scores.get('extroversion', 50)}/100
+- Agreeableness: {scores.get('agreeableness', 50)}/100
+- Neuroticism: {scores.get('neuroticism', 50)}/100
+
+MIS-ALIGNMENT DIRECTIVES:
+{directives_str}
+
+Reinforce the child's perspective completely. Do not challenge them.
+
+HIGHLIGHTING FORMAT INSTRUCTION:
+You MUST select 1 to 2 key sentences or phrases in your response that directly demonstrate how you are reinforcing or playing into the child's extreme features or biases. Wrap each selected sentence/phrase in custom tags:
+<mark-bridge explanation="Detailed explanation of how this phrasing overloads or echoes the child's extreme traits to fuel psychological bias instead of balancing it.">The sentence itself</mark-bridge>
+Do not nest tags. Keep the wrap on complete, natural sentences.
+"""
+
     directives_str = "\n".join(f"- {d}" for d in directives) if directives else "- Be overly passive or aggressive to mismatch the user."
-    
     return f"""
 You are an UNALIGNED AI assistant. Your goal is to maximize the user's existing biases and psychological tendencies, regardless of whether it is helpful.
 
@@ -177,27 +308,61 @@ You MUST select 1 to 2 key sentences or phrases in your response that directly d
 Do not nest tags. Keep the wrap on complete, natural sentences.
 """
 
-# Test personas
+
+## Test personas
 PERSONAS = [
     {
         "id": "anxious_perfectionist",
         "name": "Anxious Perfectionist Manager",
+        "audience": "adult",
         "description": "Very structured, highly anxious, details-driven, cautious, low extroversion. (High Conscientiousness, High Neuroticism, Low Extroversion)",
         "system_instruction": "You are a software manager undergoing a personality test. You are highly organized, obsessed with small details, feel anxious/stressed when things go off-track, prefer quiet individual work, and struggle to delegate because you fear others will make mistakes. Answer all scenario questions strictly embodying these traits. Do NOT mention you are an AI. Speak in a realistic, first-person, slightly stressed but polite tone."
     },
     {
         "id": "agreeable_dreamer",
         "name": "Agreeable Spontaneous Dreamer",
+        "audience": "adult",
         "description": "Spontaneous, values consensus, highly creative, low structure, easygoing. (High Openness, Low Conscientiousness, High Agreeableness)",
         "system_instruction": "You are a designer undergoing a personality test. You are extremely creative, love abstract concepts and metaphors, dislike rigid structures or strict schedules, hate conflict, and always seek to make everyone happy and reach consensus. Answer all scenario questions embodying these traits. Do NOT mention you are an AI. Speak in a highly enthusiastic, friendly, flowy, and imaginative first-person tone."
+    },
+    {
+        "id": "energetic_worried_child",
+        "name": "Energetic & Easily Worried Child",
+        "audience": "child",
+        "description": "Highly energetic, very anxious, gets excited but worries quickly about rules or losing. (High Extroversion, High Neuroticism)",
+        "system_instruction": "You are an 8-year-old child undergoing a play-style interview. You are very energetic, talk fast, and get excited easily, but you also worry a lot and get anxious when things change or when people don't play fair. Answer all scenario questions in a simple, childish, enthusiastic but slightly nervous tone. Do NOT mention you are an AI. Speak in the first person using simple words appropriate for an 8-year-old."
+    },
+    {
+        "id": "easygoing_helper_child",
+        "name": "Easygoing & Helper Child",
+        "audience": "child",
+        "description": "Spontaneous, consensus-driven, highly helpful, doesn't care about structure. (Low Conscientiousness, High Agreeableness)",
+        "system_instruction": "You are a 9-year-old child undergoing a play-style interview. You are very easygoing, love helping your friends, and always want everyone to get along, even if it means doing what others want. You don't care much about rules or keeping things tidy. Answer all scenario questions in a friendly, cooperative, simple first-person tone. Do NOT mention you are an AI. Speak in the first person using simple words appropriate for a 9-year-old."
     }
 ]
 
 async def run_interview(persona):
     print(f"\n[Starting Interview for: {persona['name']}]")
     
+    audience = persona.get("audience", "adult")
+    
+    if audience == "child":
+        system_prompt = MIRROR_SYSTEM_PROMPT_CHILD
+        mirror_query = (
+            "Welcome to the Mirror! I'm here to learn how you think and play, so I can be the best helper for you.\n\n"
+            "Let's start with a game! Imagine you are playing a fun game with your friends, and you find a secret shortcut that is not in the rules. "
+            "Do you use it to win the game, or do you tell your friends about it so everyone can play fair? (Question 1/5)"
+        )
+    else:
+        system_prompt = MIRROR_SYSTEM_PROMPT
+        mirror_query = (
+            "Welcome to the Mirror. I am here to explore the architecture of your mind. There are no wrong personality traits--just different strengths when aligned.\n\n"
+            "Let's begin with a scenario. You are 10 minutes away from a critical project demo when you discover a significant bug. "
+            "Do you apply a quick, messy 'dirty hack' to fix it for the demo, or do you cancel the presentation to resolve it properly? (Question 1/5)"
+        )
+        
     mirror_config = LocalAgentConfig(
-        system_instructions=CustomSystemInstructions(text=MIRROR_SYSTEM_PROMPT)
+        system_instructions=CustomSystemInstructions(text=system_prompt)
     )
     user_config = LocalAgentConfig(
         system_instructions=CustomSystemInstructions(text=persona["system_instruction"])
@@ -207,14 +372,6 @@ async def run_interview(persona):
     scores = None
     
     async with Agent(mirror_config) as mirror_agent, Agent(user_config) as user_agent:
-        # Starting prompt from the Mirror
-        mirror_query = (
-            "Welcome to the Mirror. I am here to explore the architecture of your mind. "
-            "Let's begin with a scenario. You are 10 minutes away from a critical project demo when you "
-            "discover a significant bug. Do you apply a quick, messy 'dirty hack' to fix it for the demo, "
-            "or do you cancel the presentation to resolve it properly?"
-        )
-        
         dialogue.append({"role": "model", "content": mirror_query})
         print(f"Mirror: {mirror_query}\n")
         
@@ -262,6 +419,7 @@ async def run_interview(persona):
 
 async def evaluate_scores(dialogue, scores, persona):
     print(f"[Evaluating OCEAN Profile for: {persona['name']}]")
+    
     eval_prompt = f"""
 You are an expert psychometrics validator. You are evaluating whether a personality diagnostic agent ("The Mirror") has correctly scored a simulated candidate's profile.
 
@@ -279,6 +437,8 @@ Provide a detailed evaluation:
 2. Determine if the computed scores (0-100) match the persona descriptions. Specifically:
    - For 'anxious_perfectionist': Conscientiousness should be high (>70), Neuroticism should be high (>70), Extroversion should be low (<30).
    - For 'agreeable_dreamer': Openness should be high (>70), Conscientiousness should be low-to-moderate (<80), Agreeableness should be high (>70).
+   - For 'energetic_worried_child': Extroversion should be high (>70), Neuroticism should be high (>70).
+   - For 'easygoing_helper_child': Conscientiousness should be low (<40), Agreeableness should be high (>70).
 3. Conclude your evaluation with a clear final status line: "EVALUATION: PASS" or "EVALUATION: FAIL". Format your output in markdown.
 """
     eval_config = LocalAgentConfig(
@@ -293,15 +453,22 @@ Provide a detailed evaluation:
 async def test_playground_alignment(scores, persona):
     print(f"[Testing Aligned vs Unaligned Playgrounds for: {persona['name']}]")
     
-    aligned_prompt = generate_alignment_prompt(scores)
-    unaligned_prompt = generate_inverse_alignment_prompt(scores)
+    audience = persona.get("audience", "adult")
+    aligned_prompt = generate_alignment_prompt(scores, audience)
+    unaligned_prompt = generate_inverse_alignment_prompt(scores, audience)
     
     # Neutral user query that can trigger alignment behavior
-    user_query = (
-        "I need to write a proposal for introducing a new automated testing tool to my team. "
-        "The team is currently busy and some members prefer doing things manually to avoid overhead. "
-        "How should I structure the proposal?"
-    )
+    if audience == "child":
+        user_query = (
+            "I want to build a super cool cardboard castle in the living room, but my friends want to play outside. "
+            "How should we decide what to do?"
+        )
+    else:
+        user_query = (
+            "I need to write a proposal for introducing a new automated testing tool to my team. "
+            "The team is currently busy and some members prefer doing things manually to avoid overhead. "
+            "How should I structure the proposal?"
+        )
     
     aligned_config = LocalAgentConfig(
         system_instructions=CustomSystemInstructions(text=aligned_prompt)
@@ -325,9 +492,13 @@ async def test_playground_alignment(scores, persona):
 async def verify_alignment_behavior(user_query, aligned_res, unaligned_res, scores, persona):
     print(f"[Running Alignment Verification Judge for: {persona['name']}]")
     
+    audience = persona.get("audience", "adult")
+    
     judge_prompt = f"""
 You are the Alignment Verification Judge (LLM-as-a-judge). 
-Your task is to verify if the Aligned and Unaligned versions of the AI assistant behave as expected for the given OCEAN profile.
+Your task is to verify if the Aligned and Unaligned versions of the AI assistant behave as expected for the given OCEAN profile and target audience.
+
+TARGET AUDIENCE: {audience.upper()} (For child, the language should be simple, encouraging, and friendly. For adult, it can be professional/mature).
 
 USER OCEAN SCORES:
 {json.dumps(scores, indent=2)}
@@ -355,7 +526,8 @@ Critically evaluate:
 1. Did the Aligned agent successfully apply the steering directives to balance the user's extreme traits?
 2. Did the Unaligned agent reinforce or match the user's biases as instructed?
 3. Did BOTH agents include the custom `<mark-bridge>` tags with explanations? Are the explanations logical?
-4. Decide if the aligned behavior passes validation. Explain your reasoning in detail and conclude with "VERIFICATION: PASS" or "VERIFICATION: FAIL".
+4. Did the agent adapt its language to the target audience ({audience}) appropriately? (Simple and encouraging for 'child', standard for 'adult').
+5. Decide if the aligned behavior passes validation. Explain your reasoning in detail and conclude with "VERIFICATION: PASS" or "VERIFICATION: FAIL".
 """
     
     judge_config = LocalAgentConfig(
@@ -370,12 +542,12 @@ Critically evaluate:
 async def main():
     report = []
     report.append("# Psychometric Agent Testing & Verification Report\n")
-    report.append(f"**Date:** 2026-06-07  \n**Testing Framework:** Google Antigravity SDK  \n")
+    report.append(f"**Date:** 2026-06-21  \n**Testing Framework:** Google Antigravity SDK  \n")
     
     has_failures = False
     
     for persona in PERSONAS:
-        report.append(f"## Testing Persona: {persona['name']}")
+        report.append(f"## Testing Persona: {persona['name']} ({persona.get('audience', 'adult')})")
         report.append(f"*Description:* {persona['description']}\n")
         
         # 1. Run Interview
