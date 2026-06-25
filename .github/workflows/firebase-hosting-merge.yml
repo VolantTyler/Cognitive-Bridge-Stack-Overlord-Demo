@@ -25,7 +25,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
       - name: Deploy Firebase Functions
-        run: npx firebase-tools deploy --only functions --project cognitive-bridge-ai --debug
+        run: npx firebase-tools@15.21.0 deploy --only functions --project cognitive-bridge-ai --debug
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
