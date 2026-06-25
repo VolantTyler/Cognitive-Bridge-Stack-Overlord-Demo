@@ -24,10 +24,12 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
+          # This action automatically sets GOOGLE_APPLICATION_CREDENTIALS for you
+
       - name: Deploy Firebase Functions
-        run: npx firebase-tools@15.21.0 deploy --only functions --project cognitive-bridge-ai --debug
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+        # We removed the manual 'env' mapping for GOOGLE_APPLICATION_CREDENTIALS
+        run: npx firebase-tools@15.21.0 deploy --only functions --project cognitive-bridge-ai
+
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
