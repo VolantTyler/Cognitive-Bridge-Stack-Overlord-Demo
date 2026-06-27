@@ -22,6 +22,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Force Failure Test (Temporary)
+        run: |
+          echo "[$(date)] Simulated Firebase CLI failure log for testing artifact upload." > firebase-debug.log
+          exit 1
+
       - run: npm ci && npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -44,3 +49,11 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
           channelId: live
           projectId: cognitive-bridge-ai
+      - name: Upload Firebase Debug Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-debug-log
+          path: |
+            firebase-debug.log
+            functions/firebase-debug.log
