@@ -22,11 +22,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Force Failure Test (Temporary)
-        run: |
-          echo "[$(date)] Simulated Firebase CLI failure log for testing artifact upload." > firebase-debug.log
-          exit 1
-
       - run: npm ci && npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
