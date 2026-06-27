@@ -13,6 +13,7 @@ import Tailor from './components/Tailor';
 import Playground from './components/Playground';
 import FeedbackModal from './components/FeedbackModal';
 import SettingsModal from './components/SettingsModal';
+import ReleaseNotesModal from './components/ReleaseNotesModal';
 import { getOllamaConfig } from './services/gemini';
 
 import { auth, googleProvider, db, logAnalyticsEvent } from './services/firebase';
@@ -25,6 +26,7 @@ export default function App() {
   const [scores, setScores] = useState<OceanScores | null>(null);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [ollamaConfig, setOllamaConfigState] = useState(() => getOllamaConfig());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -496,7 +498,13 @@ export default function App() {
           >
             Tyler J. Stahl
           </a>          <span className="text-border-primary">/</span>
-          <span>Cognitive Bridge v1.5</span>
+          <button
+            onClick={() => setIsReleaseNotesOpen(true)}
+            className="hover:text-text-primary transition-colors cursor-pointer border-0 bg-transparent uppercase tracking-[0.3em] font-bold text-[9px] text-text-muted-darker"
+            title="View Release Notes"
+          >
+            Cognitive Bridge v1.5
+          </button>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-4 text-center">
           <span className="text-orange-500/50">Model: {ollamaConfig.enabled ? `Ollama (${ollamaConfig.model})` : 'Gemini 3.1 Pro // Flash'}</span>
@@ -507,6 +515,7 @@ export default function App() {
 
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onConfigChange={(config) => setOllamaConfigState(config)} />
+      <ReleaseNotesModal isOpen={isReleaseNotesOpen} onClose={() => setIsReleaseNotesOpen(false)} />
     </div>
   );
 }
