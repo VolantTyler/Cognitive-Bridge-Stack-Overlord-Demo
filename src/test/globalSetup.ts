@@ -1,6 +1,8 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+
+const SANDBOX_FIREBASE_PROJECT_ID = 'stack-overlord-demo-cog-bridge';
 
 export async function teardown() {
   const tempFilePath = path.resolve(process.cwd(), '.tmp-test-docs.json');
@@ -15,14 +17,26 @@ export async function teardown() {
         return;
       }
       
-      const dbId = process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || "ai-studio-10d489d8-3b32-488a-9698-e415f2608028";
+      const dbId = process.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID?.trim() || '(default)';
       console.log(`\n--- Global Teardown: Cleaning up ${docIds.length} test document(s) in Firestore ---`);
       for (const docId of docIds) {
         console.log(`Deleting feedback/${docId}...`);
         try {
-          execSync(`npx -y firebase-tools@latest firestore:delete feedback/${docId} --database "${dbId}" -f`, {
-            stdio: 'inherit',
-          });
+          execFileSync(
+            'npx',
+            [
+              '-y',
+              'firebase-tools@latest',
+              'firestore:delete',
+              `feedback/${docId}`,
+              '--project',
+              SANDBOX_FIREBASE_PROJECT_ID,
+              '--database',
+              dbId,
+              '-f',
+            ],
+            { stdio: 'inherit' },
+          );
           console.log(`Successfully deleted feedback/${docId}`);
         } catch (err) {
           console.error(`Failed to delete feedback/${docId}:`, err);

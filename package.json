@@ -10,8 +10,9 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:firestore:live": "RUN_LIVE_FIRESTORE_TESTS=true vitest run src/components/__tests__/FeedbackRules.integration.test.ts",
     "test:watch": "vitest",
-    "deploy:rules": "npx firebase-tools deploy --only firestore:rules"
+    "deploy:rules": "npx firebase-tools deploy --only firestore:rules --project stack-overlord-demo-cog-bridge"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

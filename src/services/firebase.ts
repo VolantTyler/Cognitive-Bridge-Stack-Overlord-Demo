@@ -4,13 +4,26 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported, logEvent, Analytics } from "firebase/analytics";
 
+export const SANDBOX_FIREBASE_PROJECT_ID = "stack-overlord-demo-cog-bridge";
+
+const firebaseApiKey =
+  import.meta.env.VITE_FIREBASE_API_KEY?.trim() ||
+  (import.meta.env.MODE === "test" ? "sandbox-test-api-key" : "");
+
+if (!firebaseApiKey) {
+  throw new Error(
+    "VITE_FIREBASE_API_KEY must contain the sandbox Firebase Web API key.",
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCTz_uaqfVLf5kgVm26_S-tkg3J_Iafy3Y",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "cognitive-bridge-ai.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "cognitive-bridge-ai",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "cognitive-bridge-ai.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "140307808298",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:140307808298:web:c8adcea8d451676d028353",
+  apiKey: firebaseApiKey,
+  authDomain: "stack-overlord-demo-cog-bridge.firebaseapp.com",
+  projectId: SANDBOX_FIREBASE_PROJECT_ID,
+  storageBucket: "stack-overlord-demo-cog-bridge.firebasestorage.app",
+  messagingSenderId: "1068616268253",
+  appId: "1:1068616268253:web:a90ad3905289bf8b1e9e34",
+  measurementId: "G-RV7TG1N62C",
 };
 
 // Initialize Firebase
@@ -23,7 +36,7 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Initialize Cloud Firestore
-const dbId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || "ai-studio-10d489d8-3b32-488a-9698-e415f2608028";
+const dbId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID?.trim();
 const db = dbId ? getFirestore(app, dbId) : getFirestore(app);
 
 // Initialize Cloud Storage
