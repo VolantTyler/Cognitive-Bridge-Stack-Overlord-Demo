@@ -73,6 +73,19 @@ explicitly with:
 npm run test:firestore:live
 ```
 
+## Stack Overlord Deployment Demo
+
+The manually dispatched `Sandbox Deployment Demo` workflow produces factual
+GitHub Actions conclusions for Stack Overlord without writing to Firebase. Its
+success path verifies that
+<https://stack-overlord-demo-cog-bridge.web.app> returns HTTP 200, and its
+failure path stops with a clearly labeled intentional error.
+
+The workflow refuses to run outside this sandbox repository, names only the
+`stack-overlord-demo-cog-bridge` Firebase project, has no cloud credential, and
+never deploys Functions. Run it from `main` only after the Hosting-only safety
+patch has been merged and the live Hosting deployment is healthy.
+
 ### 1. Mirror Interview Responses & Cognitive Profiles
 When a user is logged in (using Google Authentication / Cloud Sync mode), their progress and responses are continuously saved:
 - **Location**: Firestore Database -> **`users`** collection
