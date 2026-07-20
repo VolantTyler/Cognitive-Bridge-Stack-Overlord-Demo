@@ -1,0 +1,90 @@
+name: Sandbox Deployment Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      result:
+        description: "Deployment result to produce"
+        required: true
+        default: success
+        type: choice
+        options:
+          - success
+          - failure
+
+# This workflow verifies the sandbox deployment or produces a controlled
+# failure. It never writes to Firebase and does not need a GitHub token.
+permissions: {}
+
+env:
+  EXPECTED_REPOSITORY: VolantTyler/Cognitive-Bridge-Stack-Overlord-Demo
+  SANDBOX_FIREBASE_PROJECT_ID: stack-overlord-demo-cog-bridge
+  SANDBOX_HOSTING_URL: https://stack-overlord-demo-cog-bridge.web.app
+
+jobs:
+  sandbox-deployment:
+    name: Sandbox deployment ${{ inputs.result }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enforce isolated sandbox target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REPOSITORY" != "$EXPECTED_REPOSITORY" ]]; then
+            echo "::error title=Unsafe repository target::This workflow may run only in $EXPECTED_REPOSITORY."
+            exit 1
+          fi
+
+          if [[ "$SANDBOX_FIREBASE_PROJECT_ID" != "stack-overlord-demo-cog-bridge" ]]; then
+            echo "::error title=Unsafe Firebase target::Unexpected Firebase project $SANDBOX_FIREBASE_PROJECT_ID."
+            exit 1
+          fi
+
+      - name: Deployment preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Firebase project: $SANDBOX_FIREBASE_PROJECT_ID"
+          echo "Hosting URL: $SANDBOX_HOSTING_URL"
+          echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "Requested result: ${{ inputs.result }}"
+
+      - name: Verify sandbox deployment success
+        id: verify-deployment
+        if: ${{ inputs.result == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          status="$(
+            curl \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --write-out "%{http_code}" \
+              --retry 3 \
+              --retry-delay 2 \
+              --retry-all-errors \
+              --max-time 20 \
+              "$SANDBOX_HOSTING_URL"
+          )"
+
+          if [[ "$status" != "200" ]]; then
+            echo "::error title=Sandbox deployment unavailable::$SANDBOX_HOSTING_URL returned HTTP $status; expected 200."
+            exit 1
+          fi
+
+          echo "Sandbox Hosting deployment returned HTTP 200."
+          echo "deployment_url=$SANDBOX_HOSTING_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Produce controlled sandbox deployment failure
+        if: ${{ inputs.result == 'failure' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::error title=Controlled sandbox deployment failure::Intentional failure for the Stack Overlord deployment demo."
+          echo "No Firebase deployment was attempted. This run targeted only $EXPECTED_REPOSITORY and $SANDBOX_FIREBASE_PROJECT_ID."
+          exit 1
