@@ -5,17 +5,15 @@
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Message } from "../types";
-import { db, auth } from "./firebase";
+import { db, auth, SANDBOX_FIREBASE_PROJECT_ID } from "./firebase";
 
 function getProxyUrl(): string {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "cognitive-bridge-ai";
-  
   if (
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "0.0.0.0"
   ) {
-    return `http://localhost:5001/${projectId}/us-central1/chatProxy`;
+    return `http://localhost:5001/${SANDBOX_FIREBASE_PROJECT_ID}/us-central1/chatProxy`;
   }
   return "/api/chat";
 }

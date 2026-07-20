@@ -4,7 +4,10 @@ import { expect, test, describe } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('Firestore Security Rules Integration (Live Database)', () => {
+const describeLiveFirestore =
+  process.env.RUN_LIVE_FIRESTORE_TESTS === 'true' ? describe : describe.skip;
+
+describeLiveFirestore('Firestore Security Rules Integration (Live Sandbox Database)', () => {
   test('writing to a restricted collection fails', async () => {
     // Attempts to write to a collection that should be completely restricted
     const restrictedRef = collection(db, '_restricted_test_collection');

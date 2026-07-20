@@ -1,25 +1,4 @@
 {
-  "firestore": [
-    {
-      "database": "(default)",
-      "rules": "firestore.rules"
-    },
-    {
-      "database": "ai-studio-10d489d8-3b32-488a-9698-e415f2608028",
-      "rules": "firestore.rules"
-    }
-  ],
-  "functions": [
-    {
-      "source": "functions",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firestore-debug.log"
-      ]
-    }
-  ],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -28,10 +7,6 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "/api/chat",
-        "function": "chatProxy"
-      },
       {
         "source": "**",
         "destination": "/index.html"

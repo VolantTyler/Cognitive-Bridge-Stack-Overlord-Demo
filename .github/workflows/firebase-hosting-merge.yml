@@ -2,45 +2,38 @@
 # https://github.com/firebase/firebase-tools
 
 name: Deploy to Firebase Hosting on Merge
+
 on:
   push:
     branches:
       - main
+
 permissions:
   checks: write
   contents: read
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Explicitly set the Node.js runtime to bypass the runner environment network bug
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
 
-      - run: npm ci && npm run build
+      - name: Install and build
+        run: npm ci && npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          
-      - name: Build Functions
-        run: cd functions && npm ci && npm run build
-        
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
 
-      - name: Deploy Firebase Functions
-        run: npx firebase-tools@15.21.0 deploy --only functions --project cognitive-bridge-ai
-
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_COGNITIVE_BRIDGE_AI }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACK_OVERLORD_DEMO_COG_BRIDGE }}
           channelId: live
-          projectId: cognitive-bridge-ai
+          projectId: stack-overlord-demo-cog-bridge

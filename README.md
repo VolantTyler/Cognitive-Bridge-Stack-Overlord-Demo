@@ -20,8 +20,7 @@ The application allows users to explore and interface with aligned artificial in
 ### Prerequisites
 - **Node.js** (v20.x or higher recommended)
 - **NPM** (comes with Node.js)
-- A **Google Cloud Project** with the **Vertex AI API** enabled
-- A **Firebase Project** (for Auth, Firestore, and Functions hosting)
+- The isolated `stack-overlord-demo-cog-bridge` Firebase sandbox for optional cloud-backed features
 - *(Optional)* A **Google Gemini API Key** (only if running the offline psychometric agent evaluation script)
 
 ### Installation Steps
@@ -42,15 +41,14 @@ The application allows users to explore and interface with aligned artificial in
    GEMINI_API_KEY="your-gemini-api-key"
 
    APP_URL="http://localhost:3000"
-   
-   VITE_FIREBASE_API_KEY="your-firebase-api-key"
-   VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"
-   VITE_FIREBASE_PROJECT_ID="your-project-id"
-   VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
-   VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
-   VITE_FIREBASE_APP_ID="your-app-id"
-   VITE_FIREBASE_FIRESTORE_DATABASE_ID="your-firestore-db-id"
+   VITE_FIREBASE_API_KEY="your-sandbox-firebase-web-api-key"
    ```
+
+   Firebase client configuration is pinned to the isolated
+   `stack-overlord-demo-cog-bridge` project. This demo repository must never be
+   configured to use the original Cognitive Bridge production project. Set the
+   sandbox Web API key as the `VITE_FIREBASE_API_KEY` GitHub Actions secret for
+   Firebase Hosting builds; do not commit it.
 
 3. **Run the Application Locally:**
    ```bash
@@ -62,7 +60,18 @@ The application allows users to explore and interface with aligned artificial in
 
 ## Data & Submission Locations
 
-This project integrates with **Cloud Firestore** to persist user session data and system feedback.
+This project can integrate with **Cloud Firestore** in the isolated Firebase
+sandbox to persist user session data and system feedback. Auth and Firestore
+must be provisioned in that sandbox before those cloud-backed flows are used;
+the Local Guest flow does not require them.
+
+The live Firestore security-rule suite is disabled during normal `npm test`
+runs. After Firestore and its rules are configured in the sandbox, run it
+explicitly with:
+
+```bash
+npm run test:firestore:live
+```
 
 ### 1. Mirror Interview Responses & Cognitive Profiles
 When a user is logged in (using Google Authentication / Cloud Sync mode), their progress and responses are continuously saved:
