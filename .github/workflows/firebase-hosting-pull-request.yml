@@ -36,3 +36,6 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STACK_OVERLORD_DEMO_COG_BRIDGE }}
           projectId: stack-overlord-demo-cog-bridge
+          # 15.34.1+ checks serviceusage.services.get before hosting deploys and
+          # 403s for this project's GitHub deploy account. See firebase-tools#11335.
+          firebaseToolsVersion: "15.34.0"
